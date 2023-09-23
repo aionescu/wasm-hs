@@ -1,14 +1,11 @@
 module Data.HList where
 
 import Data.Kind(Type)
-import Prelude
+import GHC.Exts(UnliftedType)
 
--- Classic heterogeneous list implementation.
-data HList :: [Type] -> Type where
+-- Classic heterogeneous list implementation, except it's unlifted (for extra performance).
+data HList :: [Type] -> UnliftedType where
   Nil :: HList '[]
   (:>) :: a -> HList as -> HList (a : as)
 
 infixr 5 :>
-
-deriving stock instance Show (HList '[])
-deriving stock instance (Show a, Show (HList as)) => Show (HList (a : as))

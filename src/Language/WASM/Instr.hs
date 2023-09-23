@@ -45,7 +45,7 @@ instance Append a b c => Append (x ': a) b (x ': c) where
   append (x :> a) b = x :> append a b
 
   unappend :: HList (x ': c) -> (HList (x ': a) -> HList b -> r) -> r
-  unappend (x :> c) k = unappend c $ k . (x :>)
+  unappend (x :> c) k = unappend c \a -> k (x :> a)
 
 type Stack = [Type]
 
@@ -189,7 +189,7 @@ eval e k =
     SegLog @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
 
     Call @f -> \i -> unappend i \i b ->
-      let kf = k . (`append` b)
+      let kf o = k (append o b)
       in withDict @(Return _) kf $ fnCont @f kf i
 
     Return @i -> \i -> unappend i \i _ -> returnCont @i i

@@ -1,13 +1,12 @@
 module Main where
 
-import Data.Foldable(traverse_)
+import Data.Foldable(for_)
 import Data.IORef(newIORef)
-import Data.Maybe(mapMaybe)
 import Data.Vector qualified as V
 import Prelude
 import System.Environment(getArgs)
 
-import Language.WASM.Module
+import Language.WASM.Module(evalModule)
 import Examples
 
 main :: IO ()
@@ -27,7 +26,10 @@ main = do
 
     selected =
       case args of
-        [] -> snd <$> examples
-        _ -> mapMaybe (`lookup` examples) args
+        [] -> examples
+        _ -> filter (\(name, _) -> name `elem` args) examples
 
-  traverse_ evalModule selected
+  for_ selected \(name, mod) -> do
+    putStrLn $ name <> ": "
+    evalModule mod
+    putStrLn ""

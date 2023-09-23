@@ -47,6 +47,7 @@ fn _ = Fn
 
 class MonadLike m where
   (>>) :: m a b -> m b c -> m a c
+
 infixr 5 >>
 
 instance MonadLike Instr where
