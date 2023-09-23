@@ -21,11 +21,12 @@ In order to provide better ergonomics as a Haskell DSL, the project deviates fro
 * Similarly, block labels are also named, and are introduced by the block instructions (`block`, `loop`, `if`).
 * Rather than using a single untyped linear memory, the user can explicitly allocate typed _memory segments_, inspired by the [MSWasm](https://dl.acm.org/doi/10.1145/3571208) paper. Segments are scoped similarly to local variables, and are allocated with the `let_seg` instruction.
 
-The DSL leverages GHC's excellent support for syntactic overloading to achieve a near-native look and feel:
+To achieve a near-native look and feel, the DSL relies on the following GHC language extensions:
 
-* `RebindableSyntax` to overload `do` notation and `if` expressions.
+* `RebindableSyntax` for overloaded `do` notation and `if` expressions.
 * `OverloadedRecordDot` for "sub-instructions" such as `local.get` and `cmp.gt`.
-* `OverloadedLabels` for variable, label, and segment names (e.g. `local.get #a`, `seg.store #s`)
+* `OverloadedLabels` for variable, label, and segment names (e.g. `local.get #a`, `seg.store #s`).
+* `NoImplicitPrelude` and a custom `Language.WASM.Prelude` module for easy importing.
 
 ## Interpretation
 
