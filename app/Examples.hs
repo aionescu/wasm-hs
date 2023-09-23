@@ -14,7 +14,7 @@ countTo10 =
         add
         local.tee #i
         dup
-        log
+        print
         const 10
         cmp.lt
         br_if #next
@@ -64,7 +64,7 @@ fibonacci = do
             local.set #i
             br #l
           else do
-            seg.log #fibs
+            seg.print #fibs
 
 -- Small example illustrating functions and globals.
 functions :: Module
@@ -81,14 +81,14 @@ functions = do
     call #add_to_g
     call #add_to_g
 
-  fn @'[] #log_g do
+  fn @'[] #print_g do
     local.get #g
-    log
+    print
 
   main do
     const 2
     call #add_to_g_twice
-    call #log_g
+    call #print_g
 
 -- Small example to illustrate recursive functions.
 -- Function #f just prints its argument and keeps calling
@@ -102,7 +102,7 @@ recursion = do
 
     if #_ then do
       dup
-      log
+      print
       const 1
       sub
       call #f
@@ -142,7 +142,7 @@ squareAll r = do
             br #l
           else do
             nop
-    seg.log #s
+    seg.print #s
 
 -- Calculate and print the factorial of n, using a recursive implementation.
 factorial :: Int -> Module
@@ -166,7 +166,7 @@ factorial n = do
   main do
     local.get #n
     call #factorial
-    log
+    print
 
 -- This programs traps with an out-of-bounds memory access.
 outOfBounds :: Module
@@ -176,4 +176,4 @@ outOfBounds = main do
   let_seg #s do
     const 100
     seg.load #s
-    log
+    print

@@ -59,7 +59,7 @@ data Instr (input :: Stack) (output :: Stack) where
   Dup :: Instr (a : i) (a : a : i)
   Swap :: Instr (a : b : i) (b : a : i)
 
-  Log :: Show a => Instr (a : i) i
+  Print :: Show a => Instr (a : i) i
 
   Add :: Num a => Instr (a : a : i) (a : i)
   Sub :: Num a => Instr (a : a : i) (a : i)
@@ -101,7 +101,7 @@ data Instr (input :: Stack) (output :: Stack) where
   SegGrow :: Seg s a => Instr (a : Int : i) i
 
   -- Convenience instruction to print the segment's contents
-  SegLog :: (Seg s a, Show a) => Instr i i
+  SegPrint :: (Seg s a, Show a) => Instr i i
 
   Call :: (Fn f i o, Append i b i', Append o b o') => Instr i' o'
   Return :: (Return i, Append i b i') => Instr i' o
@@ -136,7 +136,7 @@ eval e k =
     Dup -> \(a :> i) -> k (a :> a :> i)
     Swap -> \(a :> b :> i) -> k (b :> a :> i)
 
-    Log -> \(a :> i) -> print a *> k i
+    Print -> \(a :> i) -> print a *> k i
 
     Add -> \(b :> a :> i) -> k (a + b :> i)
     Sub -> \(b :> a :> i) -> k (a - b :> i)
@@ -186,7 +186,7 @@ eval e k =
     SegSize @s -> \i -> readIORef (segRef @s) >>= \v -> k (V.length v :> i)
     SegGrow @s -> \(a :> n :> i) -> modifyIORef' (segRef @s) (<> V.replicate n a) *> k i
 
-    SegLog @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
+    SegPrint @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
 
     Call @f -> \i -> unappend i \i b ->
       let kf o = k (append o b)

@@ -4,7 +4,7 @@ import Data.IORef as X (IORef)
 import Data.Vector as X (Vector)
 import GHC.OverloadedLabels as X (fromLabel)
 import GHC.Records as X (getField)
-import Prelude as X hiding ((>>), const, not, div, mod, log, drop, and, or)
+import Prelude as X hiding ((>>), const, not, div, mod, drop, and, or, print)
 
 import Data.HList as X
 import Language.WASM.Instr as X

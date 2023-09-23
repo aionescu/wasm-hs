@@ -54,7 +54,7 @@ countTo10 = main do
       add
       local.tee #i
       dup
-      log
+      print
       const 10
       cmp.lt
       br_if #next

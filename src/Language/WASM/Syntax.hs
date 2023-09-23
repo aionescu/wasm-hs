@@ -6,7 +6,7 @@ import Data.IORef(IORef)
 import Data.Vector(Vector)
 import GHC.TypeLits(KnownSymbol, SSymbol, symbolSing)
 import GHC.OverloadedLabels(IsLabel(..))
-import Prelude hiding ((>>), const, not, div, mod, log)
+import Prelude hiding ((>>), const, not, div, mod, print)
 
 import Language.WASM.Instr
 import Language.WASM.Module
@@ -94,14 +94,14 @@ data Seg' s a i o =
   , store :: SSymbol s -> Instr (a : Int : i) i
   , size :: SSymbol s -> Instr i (Int : i)
   , grow :: SSymbol s -> Instr (a : Int : i) i
-  , log :: SSymbol s -> Instr i i
+  , print :: SSymbol s -> Instr i i
   }
 
--- This over-constrains all the seg.* instructions to require Show, even though only seg.log needs it.
+-- This over-constrains all the seg.* instructions to require Show, even though only seg.print needs it.
 -- Unfortunately we can't move the constraints into the record fields, since GHC doesn't derive HasField instances for higher-rank fields.
 -- If you need to use seg.* with a type that doesn't have a Show instance, you can use the Seg* constructors directly.
 seg :: forall a s i o. (Seg s a, Show a) => Seg' s a i o
-seg = Seg (\_ -> SegLoad @s) (\_ -> SegStore @s) (\_ -> SegSize @s) (\_ -> SegGrow @s) (\_ -> SegLog @s)
+seg = Seg (\_ -> SegLoad @s) (\_ -> SegStore @s) (\_ -> SegSize @s) (\_ -> SegGrow @s) (\_ -> SegPrint @s)
 
 data Global s a c =
   Global
@@ -134,8 +134,8 @@ dup = Dup
 swap :: Instr (a : b : i) (b : a : i)
 swap = Swap
 
-log :: Show a => Instr (a : i) i
-log = Log
+print :: Show a => Instr (a : i) i
+print = Print
 
 add :: Num a => Instr (a : a : i) (a : i)
 add = Add
