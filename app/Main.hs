@@ -1,6 +1,5 @@
 module Main where
 
-import Control.Monad((<=<))
 import Data.Foldable(traverse_)
 import Data.IORef(newIORef)
 import Data.Maybe(mapMaybe)
@@ -31,4 +30,4 @@ main = do
         [] -> snd <$> examples
         _ -> mapMaybe (`lookup` examples) args
 
-  traverse_ (print <=< evalModule) selected
+  traverse_ evalModule selected

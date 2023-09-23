@@ -23,7 +23,7 @@ data Mod (c :: Constraint) (c' :: Constraint) where
   Fn :: forall f i o c. ((Return o, Fn f i o, c) => Instr i o) -> Mod c (Fn f i o, c)
   Main :: (c => Instr '[] '[]) -> Mod c ()
 
-evalMod :: c => Mod c c' -> (c' => IO [String]) -> IO [String]
+evalMod :: c => Mod c c' -> (c' => IO ()) -> IO ()
 evalMod m k =
   case m of
     MSeq a b -> evalMod a $ evalMod b k
@@ -41,5 +41,5 @@ type Module = Mod () ()
 
 -- Since 'Main' drops the final continuation, and the 'Mod () ()' type forces
 -- the module to end with a 'Main', the final continuation can simply be 'undefined'.
-evalModule :: Module -> IO [String]
+evalModule :: Module -> IO ()
 evalModule m = evalMod m undefined

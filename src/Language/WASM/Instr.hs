@@ -106,29 +106,27 @@ data Instr (input :: Stack) (output :: Stack) where
   Call :: (Fn f i o, Append i b i', Append o b o') => Instr i' o'
   Return :: (Return i, Append i b i') => Instr i' o
 
-type Cont i = HList i -> [String] -> IO [String]
+type Cont i = HList i -> IO ()
 
--- eval is a function that takes an instruction and an input stack,
--- and produces the output stack and log results in IO (for mutating variables):
---     eval :: Instr i o -> HList i -> IO (HList o, [String])
+-- 'eval' is a function that takes an instruction and an input stack,
+-- and produces an output stack in IO (to permit side-effects for mutating variables and printing):
+--     eval :: Instr i o -> HList i -> IO (HList o)
 --
--- Then, convert it to CPS to make jump instructions efficient, and also CPS the Writer monad used for logging:
---     eval :: Instr i o -> HList i -> [String] -> (HList o -> [String] -> IO [String]) -> IO [String]
+-- Then, convert it to CPS, to make jump instructions more efficient:
+--     eval :: Instr i o -> HList i -> (HList o -> IO ()) -> IO ()
 --
 -- Then, swap the order of arguments, to make it easier to compose continuations:
---     eval :: Instr i o -> (HList o -> [String] -> IO [String]) -> HList i -> [String] -> IO [String]
+--     eval :: Instr i o -> (HList o -> IO ()) -> HList i -> IO ()
 --
 -- Then, add a type alias for continuations:
 --     eval :: Instr i o -> Cont o -> Cont i
 --
--- Since eval is called on each instruction exactly once, it could also be seen as
+-- Since 'eval' is called on each instruction exactly once, it could also be seen as
 -- a compiler that compiles each instruction into a "continuation transformer".
 eval :: Instr i o -> Cont o -> Cont i
 eval e k =
   case e of
     Nop -> k
-    -- Rather than crashing with a Haskell exception, instead just stop calling the continuation.
-    -- Otherwise, if a program traps, all previous logging output is lost.
     Unreachable -> \_ -> trap "Unreachable was reached"
 
     Seq a b -> eval a $ eval b k
@@ -138,7 +136,7 @@ eval e k =
     Dup -> \(a :> i) -> k (a :> a :> i)
     Swap -> \(a :> b :> i) -> k (b :> a :> i)
 
-    Log -> \(a :> i) w -> k i (show a : w)
+    Log -> \(a :> i) -> print a *> k i
 
     Add -> \(b :> a :> i) -> k (a + b :> i)
     Sub -> \(b :> a :> i) -> k (a - b :> i)
@@ -172,23 +170,23 @@ eval e k =
     Br @l -> \i -> unappend i \i _ -> labelCont @l i
     BrIf @l -> \(b :> i) -> bool k (labelCont @l) b i
 
-    Let @v e -> \(a :> i) w -> newIORef a >>= \r -> withDict @(Var v _) r $ eval e k i w
+    Let @v e -> \(a :> i) -> newIORef a >>= \r -> withDict @(Var v _) r $ eval e k i
 
-    LocalGet @v -> \i w -> readIORef (varRef @v) >>= \a -> k (a :> i) w
-    LocalSet @v -> \(a :> i) w -> writeIORef (varRef @v) a *> k i w
-    LocalTee @v -> \i@(a :> _) w -> writeIORef (varRef @v) a *> k i w
+    LocalGet @v -> \i -> readIORef (varRef @v) >>= \a -> k (a :> i)
+    LocalSet @v -> \(a :> i) -> writeIORef (varRef @v) a *> k i
+    LocalTee @v -> \i@(a :> _) -> writeIORef (varRef @v) a *> k i
 
-    LetSeg @s e -> \(a :> n :> i) w -> newIORef (V.replicate n a) >>= \r -> withDict @(Seg s _) r $ eval e k i w
+    LetSeg @s e -> \(a :> n :> i) -> newIORef (V.replicate n a) >>= \r -> withDict @(Seg s _) r $ eval e k i
 
-    SegLoad @s -> \(n :> i) w -> readIORef (segRef @s) >>= \v -> boundsCheck v n w $ k (v V.! n :> i) w
-    SegStore @s -> \(a :> n :> i) w ->
+    SegLoad @s -> \(n :> i) -> readIORef (segRef @s) >>= \v -> boundsCheck v n $ k (v V.! n :> i)
+    SegStore @s -> \(a :> n :> i) ->
       let r = segRef @s
-      in readIORef r >>= \v -> boundsCheck v n w $ writeIORef r (v V.// [(n, a)]) *> k i w
+      in readIORef r >>= \v -> boundsCheck v n $ writeIORef r (v V.// [(n, a)]) *> k i
 
-    SegSize @s -> \i w -> readIORef (segRef @s) >>= \v -> k (V.length v :> i) w
-    SegGrow @s -> \(a :> n :> i) w -> modifyIORef' (segRef @s) (<> V.replicate n a) *> k i w
+    SegSize @s -> \i -> readIORef (segRef @s) >>= \v -> k (V.length v :> i)
+    SegGrow @s -> \(a :> n :> i) -> modifyIORef' (segRef @s) (<> V.replicate n a) *> k i
 
-    SegLog @s -> \i w -> readIORef (segRef @s) >>= \v -> k i (show v : w)
+    SegLog @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
 
     Call @f -> \i -> unappend i \i b ->
       let kf = k . (`append` b)
@@ -196,13 +194,15 @@ eval e k =
 
     Return @i -> \i -> unappend i \i _ -> returnCont @i i
   where
-    trap :: String -> [String] -> IO [String]
-    trap msg w = pure ("Execution trapped: " <> msg : w)
+    -- Rather than crashing with a Haskell exception, just print an error message
+    -- and stop calling the continuation.
+    trap :: String -> IO ()
+    trap msg = putStrLn ("Execution trapped: " <> msg)
 
-    boundsCheck :: Vector a -> Int -> [String] -> IO [String] -> IO [String]
-    boundsCheck v n w k
-      | n < 0 || n >= V.length v = trap "Segment access out of bounds" w
+    boundsCheck :: Vector a -> Int -> IO () -> IO ()
+    boundsCheck v n k
+      | n < 0 || n >= V.length v = trap "Segment access out of bounds"
       | otherwise = k
 
-evalInstr :: Instr '[] '[] -> IO [String]
-evalInstr e = eval e (\_ -> pure . reverse) Nil []
+evalInstr :: Instr '[] '[] -> IO ()
+evalInstr e = eval e (\_ -> pure ()) Nil
