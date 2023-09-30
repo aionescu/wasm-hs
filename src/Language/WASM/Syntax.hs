@@ -74,7 +74,7 @@ data Cmp a i =
   }
 
 -- This over-constrains cmp.eq and cmp.neq to require Ord, when Eq would suffice.
--- See the comment on 'seg' for more details.
+-- See the comment below on 'seg' for more details.
 cmp :: Ord a => Cmp a i
 cmp = Cmp CmpEq CmpNeq CmpLt CmpLte CmpGt CmpGte
 
@@ -170,5 +170,5 @@ not = Not
 ret :: forall i b i' o. (Return i, Append i b i') => Instr i' o
 ret = Return @i
 
-main :: (c => Instr '[] '[]) -> Mod c ()
+main :: (c => NoMain) => (c => Instr '[] '[]) -> Mod c ()
 main = Main
