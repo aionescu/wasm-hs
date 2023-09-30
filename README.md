@@ -1,6 +1,24 @@
 # wasm-hs
 
-This project provides an eDSL that enables the embedding of a subset of WASM into Haskell, in a type-safe way.
+This project provides an embedded domain-specific language (eDSL) that enables the embedding of a significant subset of WASM into Haskell, in a type-safe way (i.e. writing invalid WASM results in a Haskell type error).
+
+Below is a simple example of the DSL, a WASM program that counts up to 10:
+
+```haskell
+countTo10 = main do
+  const @Int 0
+  let' #i do
+    loop #next do
+      local.get #i
+      const 1
+      add
+      local.tee #i
+      dup
+      print
+      const 10
+      cmp.lt
+      br_if #next
+```
 
 ## Supported WASM features
 
@@ -40,27 +58,13 @@ Global variables and segments can be initialised with host-provided mutable refe
 * Functions can only refer to functions defined before them in the same module (and to themselves), thus mutually-recursive functions are not supported.
 * Indirect calls and `br_table` are not supported.
 
-## Examples
+## Project Structure
 
-Below is a simple WASM program that counts up to 10, written using the DSL:
+The main modules of the library are [`Language.WASM.Instr`](src/Language/WASM/Instr.hs), which defines the core `Instr` AST datatype and evaluation functions; and [`Language.WASM.Module`](src/Language/WASM/Module.hs), which builds upon `Instr` and defines a datatype for bundling WASM definitions into modules, as well as module evaluation functions.
 
-```haskell
-countTo10 = main do
-  const @Int 0
-  let' #i do
-    loop #next do
-      local.get #i
-      const 1
-      add
-      local.tee #i
-      dup
-      print
-      const 10
-      cmp.lt
-      br_if #next
-```
+[`Language.WASM.Syntax`](src/Language/WASM/Syntax.hs) defines the DSL's syntactic sugar, and [`Language.WASM.Prelude`](src/Language/WASM/Prelude.hs) ties everything together into a single import.
 
-More examples can be found in the [`Examples`](app/Examples.hs) module.
+The [`Examples`](app/Examples.hs) module defines a number of example WASM programs, and [`Main`](app/Main.hs) contains the driver code.
 
 ## Dependencies
 

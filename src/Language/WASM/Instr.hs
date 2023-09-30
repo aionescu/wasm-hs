@@ -10,27 +10,41 @@ import Prelude
 
 import Data.HList
 
--- Type classes used for name resolution (variables, labels etc.)
-
+-- An instance of 'Var v a' means that variable 'v' is in scope
+-- and has type 'a'
 class Var v a | v -> a where
   varRef :: IORef a
 
+-- An instance of 'Label l i' means that label 'l' is in scope
+-- and has input stack 'i'
 class Label l i | l -> i where
   labelCont :: Cont i
 
+-- An instance of 'Seg s a' means that segment 's' is in scope
+-- and stores elements of type 'a'
 class Seg s a | s -> a where
   segRef :: IORef (Vector a)
 
+-- An instance of 'Return o' means that the current function
+-- has output stack 'o'
 class Return o where
   returnCont :: Cont o
 
+-- An instance of 'Fn f i o' means that function 'f' is in scope
+-- with input stack 'i' and output stack 'o'
 class Fn f i o | f -> i o where
+  -- Note the 'Fn f i o' constraint on the function's continuation.
+  -- This enables self-recursion.
   fnCont :: (Return o, Fn f i o) => Cont o -> Cont i
 
--- Type class for splitting off and merging the top of the data stack,
--- used for jumps and function calls.
+-- An instance of 'Append a b c' witnesses the fact that (a ++ b) == c.
+-- The class methods enable splitting and merging data stacks,
+-- and are used for jumps and function calls.
 class Append a b c | a b -> c, a c -> b where
   append :: HList a -> HList b -> HList c
+
+  -- unappend :: HList c -> (HList a, HList b)
+  -- CPS'ed to avoid allocating tuples
   unappend :: HList c -> (HList a -> HList b -> r) -> r
 
 instance Append '[] b b where
@@ -40,15 +54,17 @@ instance Append '[] b b where
   unappend :: HList b -> (HList '[] -> HList b -> r) -> r
   unappend b k = k Nil b
 
-instance Append a b c => Append (x ': a) b (x ': c) where
-  append :: HList (x ': a) -> HList b -> HList (x ': c)
+instance Append a b c => Append (x : a) b (x : c) where
+  append :: HList (x : a) -> HList b -> HList (x : c)
   append (x :> a) b = x :> append a b
 
-  unappend :: HList (x ': c) -> (HList (x ': a) -> HList b -> r) -> r
+  unappend :: HList (x : c) -> (HList (x : a) -> HList b -> r) -> r
   unappend (x :> c) k = unappend c \a -> k (x :> a)
 
 type Stack = [Type]
 
+-- An 'Instr i o' is a WASM instruction that takes an input stack 'i'
+-- and produces an output stack 'o'.
 data Instr (input :: Stack) (output :: Stack) where
   Nop :: Instr i i
   Unreachable :: Instr i o
@@ -122,7 +138,7 @@ type Cont i = HList i -> IO ()
 --     eval :: Instr i o -> Cont o -> Cont i
 --
 -- Since 'eval' is called on each instruction exactly once, it could also be seen as
--- a compiler that compiles each instruction into a "continuation transformer".
+-- as compiling each instruction into a "continuation transformer".
 eval :: Instr i o -> Cont o -> Cont i
 eval e k =
   case e of
@@ -141,15 +157,9 @@ eval e k =
     Add -> \(b :> a :> i) -> k (a + b :> i)
     Sub -> \(b :> a :> i) -> k (a - b :> i)
     Mul -> \(b :> a :> i) -> k (a * b :> i)
-    Div -> \case
-      0 :> _ -> trap "Division by zero"
-      b :> a :> i -> k (a `div` b :> i)
-    Mod -> \case
-      0 :> _ -> trap "Division by zero"
-      b :> a :> i -> k (a `mod` b :> i)
-    FDiv -> \case
-      0 :> _ -> trap "Division by zero"
-      b :> a :> i -> k (a / b :> i)
+    Div -> \(b :> a :> i) -> checkNonZero b $ k (a `div` b :> i)
+    Mod -> \(b :> a :> i) -> checkNonZero b $ k (a `mod` b :> i)
+    FDiv -> \(b :> a :> i) -> checkNonZero b $ k (a / b :> i)
     Neg -> \(a :> i) -> k (-a :> i)
 
     CmpEq -> \(b :> a :> i) -> k ((a == b) :> i)
@@ -198,6 +208,11 @@ eval e k =
     -- and stop calling the continuation.
     trap :: String -> IO ()
     trap msg = putStrLn ("Execution trapped: " <> msg)
+
+    checkNonZero :: (Eq a, Num a) => a -> IO () -> IO ()
+    checkNonZero n k
+      | n == 0 = trap "Division by zero"
+      | otherwise = k
 
     boundsCheck :: Vector a -> Int -> IO () -> IO ()
     boundsCheck v n k
