@@ -120,7 +120,7 @@ data Instr (input :: Stack) (output :: Stack) where
   SegPrint :: (Seg s a, Show a) => Instr i i
 
   Call :: (Fn f i o, Append i b i', Append o b o') => Instr i' o'
-  Return :: (Return i, Append i b i') => Instr i' o
+  Ret :: (Return i, Append i b i') => Instr i' o
 
 type Cont i = HList i -> IO ()
 
@@ -157,9 +157,9 @@ eval e k =
     Add -> \(b :> a :> i) -> k (a + b :> i)
     Sub -> \(b :> a :> i) -> k (a - b :> i)
     Mul -> \(b :> a :> i) -> k (a * b :> i)
-    Div -> \(b :> a :> i) -> checkNonZero b $ k (a `div` b :> i)
-    Mod -> \(b :> a :> i) -> checkNonZero b $ k (a `mod` b :> i)
-    FDiv -> \(b :> a :> i) -> checkNonZero b $ k (a / b :> i)
+    Div -> \(b :> a :> i) -> checkZero b $ k (a `div` b :> i)
+    Mod -> \(b :> a :> i) -> checkZero b $ k (a `mod` b :> i)
+    FDiv -> \(b :> a :> i) -> checkZero b $ k (a / b :> i)
     Neg -> \(a :> i) -> k (-a :> i)
 
     CmpEq -> \(b :> a :> i) -> k ((a == b) :> i)
@@ -188,10 +188,10 @@ eval e k =
 
     LetSeg @s e -> \(a :> n :> i) -> newIORef (V.replicate n a) >>= \r -> withDict @(Seg s _) r $ eval e k i
 
-    SegLoad @s -> \(n :> i) -> readIORef (segRef @s) >>= \v -> boundsCheck v n $ k (v V.! n :> i)
+    SegLoad @s -> \(n :> i) -> readIORef (segRef @s) >>= \v -> checkBounds v n $ k (v V.! n :> i)
     SegStore @s -> \(a :> n :> i) ->
       let r = segRef @s
-      in readIORef r >>= \v -> boundsCheck v n $ writeIORef r (v V.// [(n, a)]) *> k i
+      in readIORef r >>= \v -> checkBounds v n $ writeIORef r (v V.// [(n, a)]) *> k i
 
     SegSize @s -> \i -> readIORef (segRef @s) >>= \v -> k (V.length v :> i)
     SegGrow @s -> \(a :> n :> i) -> modifyIORef' (segRef @s) (<> V.replicate n a) *> k i
@@ -202,20 +202,19 @@ eval e k =
       let kf o = k (append o b)
       in withDict @(Return _) kf $ fnCont @f kf i
 
-    Return @i -> \i -> unappend i \i _ -> returnCont @i i
+    Ret @i -> \i -> unappend i \i _ -> returnCont @i i
   where
     -- Rather than crashing with a Haskell exception, just print an error message
     -- and stop calling the continuation.
     trap :: String -> IO ()
     trap msg = putStrLn ("Execution trapped: " <> msg)
 
-    checkNonZero :: (Eq a, Num a) => a -> IO () -> IO ()
-    checkNonZero n k
-      | n == 0 = trap "Division by zero"
-      | otherwise = k
+    checkZero :: (Eq a, Num a) => a -> IO () -> IO ()
+    checkZero 0 _ = trap "Division by zero"
+    checkZero _ k = k
 
-    boundsCheck :: Vector a -> Int -> IO () -> IO ()
-    boundsCheck v n k
+    checkBounds :: Vector a -> Int -> IO () -> IO ()
+    checkBounds v n k
       | n < 0 || n >= V.length v = trap "Segment access out of bounds"
       | otherwise = k
 

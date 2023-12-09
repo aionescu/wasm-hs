@@ -168,7 +168,7 @@ not :: Instr (Bool : i) (Bool : i)
 not = Not
 
 ret :: forall i b i' o. (Return i, Append i b i') => Instr i' o
-ret = Return @i
+ret = Ret @i
 
 main :: (c => NoMain) => (c => Instr '[] '[]) -> Mod c ()
 main = Main
