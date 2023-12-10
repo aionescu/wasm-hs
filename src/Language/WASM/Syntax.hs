@@ -63,20 +63,22 @@ ifThenElse _ = If
 
 -- OverloadedRecordDot
 
-data Cmp a i =
-  Cmp
-  { eq :: Instr (a : a : i) (Bool : i)
-  , neq :: Instr (a : a : i) (Bool : i)
-  , lt :: Instr (a : a : i) (Bool : i)
-  , lte :: Instr (a : a : i) (Bool : i)
-  , gt :: Instr (a : a : i) (Bool : i)
-  , gte :: Instr (a : a : i) (Bool : i)
+data I a i =
+  I
+  { div :: Instr (a : a : i) (a : i)
+  , rem :: Instr (a : a : i) (a : i)
   }
 
--- This over-constrains cmp.eq and cmp.neq to require Ord, when Eq would suffice.
--- See the comment below on 'seg' for more details.
-cmp :: Ord a => Cmp a i
-cmp = Cmp CmpEq CmpNeq CmpLt CmpLte CmpGt CmpGte
+i :: forall a i. Integral a => I a i
+i = I { div = IDiv, rem = IRem }
+
+data F a i =
+  F
+  { div :: Instr (a : a : i) (a : i)
+  }
+
+f :: forall a i. (Eq a, Fractional a) => F a i
+f = F { div = FDiv }
 
 data Local v a i =
   Local
@@ -99,7 +101,7 @@ data Seg' s a i o =
 
 -- This over-constrains all the seg.* instructions to require Show, even though only seg.print needs it.
 -- Unfortunately we can't move the constraints into the record fields, since GHC doesn't derive HasField instances for higher-rank fields.
--- If you need to use seg.* with a type that doesn't have a Show instance, you can use the Seg* constructors directly.
+-- If you need to use seg.* instructions with a type that doesn't have a Show instance, you can use the Seg* constructors directly.
 seg :: forall a s i o. (Seg s a, Show a) => Seg' s a i o
 seg = Seg (\_ -> SegLoad @s) (\_ -> SegStore @s) (\_ -> SegSize @s) (\_ -> SegGrow @s) (\_ -> SegPrint @s)
 
@@ -137,6 +139,9 @@ swap = Swap
 print :: Show a => Instr (a : i) i
 print = Print
 
+neg :: Num a => Instr (a : i) (a : i)
+neg = Neg
+
 add :: Num a => Instr (a : a : i) (a : i)
 add = Add
 
@@ -146,17 +151,23 @@ sub = Sub
 mul :: Num a => Instr (a : a : i) (a : i)
 mul = Mul
 
-div :: Integral a => Instr (a : a : i) (a : i)
-div = Div
+eq :: Eq a => Instr (a : a : i) (Bool : i)
+eq = Eq
 
-mod :: Integral a => Instr (a : a : i) (a : i)
-mod = Mod
+neq :: Eq a => Instr (a : a : i) (Bool : i)
+neq = Neq
 
-div_f :: (Eq a, Fractional a) => Instr (a : a : i) (a : i)
-div_f = FDiv
+lt :: Ord a => Instr (a : a : i) (Bool : i)
+lt = Lt
 
-neg :: Num a => Instr (a : i) (a : i)
-neg = Neg
+gt :: Ord a => Instr (a : a : i) (Bool : i)
+gt = Gt
+
+lte :: Ord a => Instr (a : a : i) (Bool : i)
+lte = Lte
+
+gte :: Ord a => Instr (a : a : i) (Bool : i)
+gte = Gte
 
 and :: Instr (Bool : Bool : i) (Bool : i)
 and = And

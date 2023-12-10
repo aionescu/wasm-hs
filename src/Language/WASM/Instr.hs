@@ -77,20 +77,22 @@ data Instr (input :: Stack) (output :: Stack) where
 
   Print :: Show a => Instr (a : i) i
 
+  Neg :: Num a => Instr (a : i) (a : i)
   Add :: Num a => Instr (a : a : i) (a : i)
   Sub :: Num a => Instr (a : a : i) (a : i)
   Mul :: Num a => Instr (a : a : i) (a : i)
-  Div :: Integral a => Instr (a : a : i) (a : i)
-  Mod :: Integral a => Instr (a : a : i) (a : i)
-  FDiv :: (Eq a, Fractional a) => Instr (a : a : i) (a : i)
-  Neg :: Num a => Instr (a : i) (a : i)
 
-  CmpEq :: Eq a => Instr (a : a : i) (Bool : i)
-  CmpNeq :: Eq a => Instr (a : a : i) (Bool : i)
-  CmpLt :: Ord a => Instr (a : a : i) (Bool : i)
-  CmpLte :: Ord a => Instr (a : a : i) (Bool : i)
-  CmpGt :: Ord a => Instr (a : a : i) (Bool : i)
-  CmpGte :: Ord a => Instr (a : a : i) (Bool : i)
+  IDiv :: Integral a => Instr (a : a : i) (a : i)
+  IRem :: Integral a => Instr (a : a : i) (a : i)
+
+  FDiv :: (Eq a, Fractional a) => Instr (a : a : i) (a : i)
+
+  Eq :: Eq a => Instr (a : a : i) (Bool : i)
+  Neq :: Eq a => Instr (a : a : i) (Bool : i)
+  Lt :: Ord a => Instr (a : a : i) (Bool : i)
+  Lte :: Ord a => Instr (a : a : i) (Bool : i)
+  Gt :: Ord a => Instr (a : a : i) (Bool : i)
+  Gte :: Ord a => Instr (a : a : i) (Bool : i)
 
   And :: Instr (Bool : Bool : i) (Bool : i)
   Or :: Instr (Bool : Bool : i) (Bool : i)
@@ -154,20 +156,22 @@ eval e k =
 
     Print -> \(a :> i) -> print a *> k i
 
+    Neg -> \(a :> i) -> k (-a :> i)
     Add -> \(b :> a :> i) -> k (a + b :> i)
     Sub -> \(b :> a :> i) -> k (a - b :> i)
     Mul -> \(b :> a :> i) -> k (a * b :> i)
-    Div -> \(b :> a :> i) -> checkZero b $ k (a `div` b :> i)
-    Mod -> \(b :> a :> i) -> checkZero b $ k (a `mod` b :> i)
-    FDiv -> \(b :> a :> i) -> checkZero b $ k (a / b :> i)
-    Neg -> \(a :> i) -> k (-a :> i)
 
-    CmpEq -> \(b :> a :> i) -> k ((a == b) :> i)
-    CmpNeq -> \(b :> a :> i) -> k ((a /= b) :> i)
-    CmpLt -> \(b :> a :> i) -> k ((a < b) :> i)
-    CmpLte -> \(b :> a :> i) -> k ((a <= b) :> i)
-    CmpGt -> \(b :> a :> i) -> k ((a > b) :> i)
-    CmpGte -> \(b :> a :> i) -> k ((a >= b) :> i)
+    IDiv -> \(b :> a :> i) -> checkZero b $ k (a `div` b :> i)
+    IRem -> \(b :> a :> i) -> checkZero b $ k (a `mod` b :> i)
+
+    FDiv -> \(b :> a :> i) -> checkZero b $ k (a / b :> i)
+
+    Eq -> \(b :> a :> i) -> k ((a == b) :> i)
+    Neq -> \(b :> a :> i) -> k ((a /= b) :> i)
+    Lt -> \(b :> a :> i) -> k ((a < b) :> i)
+    Lte -> \(b :> a :> i) -> k ((a <= b) :> i)
+    Gt -> \(b :> a :> i) -> k ((a > b) :> i)
+    Gte -> \(b :> a :> i) -> k ((a >= b) :> i)
 
     And -> \(b :> a :> i) -> k ((a && b) :> i)
     Or -> \(b :> a :> i) -> k ((a || b) :> i)

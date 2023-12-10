@@ -16,7 +16,7 @@ countTo10 =
         dup
         print
         const 10
-        cmp.lt
+        lt
         br_if #next
 
 -- Allocate a segment to store the first n fibonacci numbers, and print it.
@@ -41,7 +41,7 @@ fibonacci = do
         loop #l do
           local.get #i
           local.get #n
-          cmp.lt
+          lt
           if #_ then do
             local.get #i
             const 2
@@ -98,7 +98,7 @@ recursion = do
   fn @'[Int] #f do
     dup
     const 0
-    cmp.gt
+    gt
 
     if #_ then do
       dup
@@ -126,7 +126,7 @@ squareAll r = do
         loop #l do
           local.get #i
           local.get #n
-          cmp.lt
+          lt
           if #_ then do
             local.get #i
             dup
@@ -152,7 +152,7 @@ factorial n = do
   fn @'[Int] #factorial do
     dup
     const 1
-    cmp.gt
+    gt
     if #_ then do
       dup
       const 1
@@ -177,3 +177,11 @@ outOfBounds = main do
     const 100
     seg.load #s
     print
+
+-- This program traps with a division by zero.
+divByZero :: Module
+divByZero = main do
+  const @Int 1
+  const 0
+  i.div
+  print

@@ -17,6 +17,7 @@ main = do
   let
     examples =
       [ ("countTo10", countTo10)
+      , ("divByZero", divByZero)
       , ("fibonacci", fibonacci)
       , ("functions", functions)
       , ("recursion", recursion)
