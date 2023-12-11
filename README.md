@@ -61,8 +61,8 @@ The [`Examples`](app/Examples.hs) module defines a number of example WASM progra
 
 ## Dependencies
 
-* GHC >=9.6
-* Cabal >=3.10
+* GHC >=9.8.1
+* Cabal >=3.10.2.0
 
 (Both can be installed via [GHCup](https://www.haskell.org/ghcup/))
 

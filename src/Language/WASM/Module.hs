@@ -4,7 +4,7 @@ import Data.IORef(IORef, newIORef)
 import Data.Kind(Constraint)
 import Data.Vector(Vector)
 import GHC.Exts(withDict)
-import GHC.TypeError(TypeError, ErrorMessage(..))
+import GHC.TypeError(ErrorMessage(..), Unsatisfiable)
 import Prelude
 
 import Language.WASM.Instr
@@ -12,7 +12,7 @@ import Language.WASM.Instr
 class NoMain where
   dummy :: () -- Needed for 'withDict' to work
 
-instance TypeError (Text "Each WASM module must contain exactly one 'main' definition.") => NoMain where
+instance Unsatisfiable (Text "Each WASM module must contain exactly one 'main' definition.") => NoMain where
   dummy = ()
 
 -- A 'Mod'ule encapsulates a series of WASM definitions (global variables, segments, and functions).

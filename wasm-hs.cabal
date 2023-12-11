@@ -42,6 +42,7 @@ common ghc-flags
     RebindableSyntax
     RecordWildCards
     RecursiveDo
+    TypeAbstractions
     TypeFamilyDependencies
     UnboxedTuples
     UndecidableInstances
@@ -79,7 +80,7 @@ library
     Language.WASM.Syntax
 
   build-depends:
-    base >=4.18 && <5
+    base >=4.19 && <5
     , vector ^>= 0.13
 
 executable wasm-hs

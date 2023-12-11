@@ -6,6 +6,7 @@ import Data.Kind(Type)
 import Data.Vector(Vector)
 import Data.Vector qualified as V
 import GHC.Exts(withDict)
+import GHC.TypeError(ErrorMessage(..), Unsatisfiable)
 import Prelude
 
 import Data.HList
@@ -15,20 +16,32 @@ import Data.HList
 class Var v a | v -> a where
   varRef :: IORef a
 
+instance Unsatisfiable (Text "Can't define explicit 'Var' instances") => Var v a where
+  varRef = undefined
+
 -- An instance of 'Label l i' means that label 'l' is in scope
 -- and has input stack 'i'
 class Label l i | l -> i where
   labelCont :: Cont i
+
+instance Unsatisfiable (Text "Can't define explicit 'Label' instances") => Label l i where
+  labelCont = undefined
 
 -- An instance of 'Seg s a' means that segment 's' is in scope
 -- and stores elements of type 'a'
 class Seg s a | s -> a where
   segRef :: IORef (Vector a)
 
+instance Unsatisfiable (Text "Can't define explicit 'Seq' instances") => Seg s a where
+  segRef = undefined
+
 -- An instance of 'Return o' means that the current function
 -- has output stack 'o'
 class Return o where
   returnCont :: Cont o
+
+instance Unsatisfiable (Text "Can't define explicit 'Return' instances") => Return o where
+  returnCont = undefined
 
 -- An instance of 'Fn f i o' means that function 'f' is in scope
 -- with input stack 'i' and output stack 'o'
@@ -36,6 +49,9 @@ class Fn f i o | f -> i o where
   -- Note the 'Fn f i o' constraint on the function's continuation.
   -- This enables self-recursion.
   fnCont :: (Return o, Fn f i o) => Cont o -> Cont i
+
+instance Unsatisfiable (Text "Can't define explicit 'Fn' instances") => Fn f i o where
+  fnCont = undefined
 
 -- An instance of 'Append a b c' witnesses the fact that (a ++ b) == c.
 -- The class methods enable splitting and merging data stacks,
