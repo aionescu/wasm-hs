@@ -1,4 +1,10 @@
-# wasm-hs
+<!-- markdownlint-disable first-line-heading -->
+
+<div align="center">
+  <h1>wasm-hs</h1>
+
+  <img src="assets/logo.png" alt="wasm-hs Logo" width="150" height="150"/>
+</div>
 
 This project provides an embedded domain-specific language (eDSL) that enables the embedding of a significant subset of WASM into Haskell, in a type-safe way (i.e. writing invalid WASM results in a Haskell type error).
 
