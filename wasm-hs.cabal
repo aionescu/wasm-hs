@@ -7,7 +7,7 @@ license-file: LICENSE.txt
 copyright: Copyright (C) 2023 Alex Ionescu
 build-type: Simple
 
-extra-source-files:
+extra-doc-files:
   README.md
 
 common ghc-flags
@@ -16,39 +16,18 @@ common ghc-flags
     AllowAmbiguousTypes
     BlockArguments
     DataKinds
-    DefaultSignatures
-    DeriveAnyClass
-    DerivingVia
     DuplicateRecordFields
-    ExplicitNamespaces
     FunctionalDependencies
     GADTs
-    ImplicitParams
     ImpredicativeTypes
-    LambdaCase
-    LexicalNegation
-    MagicHash
-    MultiWayIf
-    NegativeLiterals
     NoFieldSelectors
-    NoMonomorphismRestriction
-    NoStarIsType
     OverloadedLabels
     OverloadedRecordDot
-    PartialTypeSignatures
-    PatternSynonyms
-    QualifiedDo
     QuantifiedConstraints
     RebindableSyntax
-    RecordWildCards
-    RecursiveDo
     TypeAbstractions
-    TypeFamilyDependencies
-    UnboxedTuples
     UndecidableInstances
     UnliftedDatatypes
-    UnliftedNewtypes
-    ViewPatterns
 
   ghc-options:
     -Wall
@@ -61,12 +40,6 @@ common ghc-flags
     -Wprepositive-qualified-module
     -Wredundant-constraints
     -Wunused-packages
-
-common rts-flags
-  ghc-options:
-    -threaded
-    -rtsopts
-    -with-rtsopts=-N
 
 library
   import: ghc-flags
@@ -85,7 +58,6 @@ library
 
 executable wasm-hs
   import: ghc-flags
-  import: rts-flags
 
   hs-source-dirs: app
   main-is: Main.hs
