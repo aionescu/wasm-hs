@@ -19,53 +19,6 @@ countTo10 =
         lt
         br_if #next
 
--- Allocate a segment to store the first n fibonacci numbers, and print it.
-fibonacci :: Module
-fibonacci = do
-  global.var #n 10
-
-  main do
-    local.get #n
-    const @Int 0
-    let_seg #fibs do
-      const 0
-      const 1
-      seg.store #fibs
-
-      const 1
-      const 2
-      seg.store #fibs
-
-      const 2
-      let' #i do
-        loop #l do
-          local.get #i
-          local.get #n
-          lt
-          if #_ then do
-            local.get #i
-            const 2
-            sub
-            seg.load #fibs
-
-            local.get #i
-            const 1
-            sub
-            seg.load #fibs
-
-            add
-            local.get #i
-            swap
-            seg.store #fibs
-
-            local.get #i
-            const 1
-            add
-            local.set #i
-            br #l
-          else do
-            seg.print #fibs
-
 -- Small example illustrating functions and globals.
 functions :: Module
 functions = do
@@ -113,6 +66,95 @@ recursion = do
     const 10
     call #f
 
+-- This programs traps with an out-of-bounds memory access.
+outOfBounds :: Module
+outOfBounds = main do
+  const 10
+  const ()
+  let_seg #s do
+    const 100
+    seg.load #s
+    print
+
+-- This program traps with a division by zero.
+divByZero :: Module
+divByZero = main do
+  const @Int 1
+  const 0
+  i.div
+  print
+
+-- Allocate a segment to store the first n fibonacci numbers, and print it.
+fibonacci :: Module
+fibonacci = do
+  global.var #n 10
+
+  main do
+    local.get #n
+    const @Int 0
+    let_seg #fibs do
+      const 0
+      const 1
+      seg.store #fibs
+
+      const 1
+      const 2
+      seg.store #fibs
+
+      const 2
+      let' #i do
+        loop #l do
+          local.get #i
+          local.get #n
+          lt
+          if #_ then do
+            local.get #i
+            const 2
+            sub
+            seg.load #fibs
+
+            local.get #i
+            const 1
+            sub
+            seg.load #fibs
+
+            add
+            local.get #i
+            swap
+            seg.store #fibs
+
+            local.get #i
+            const 1
+            add
+            local.set #i
+            br #l
+          else do
+            seg.print #fibs
+
+-- Calculate and print the factorial of n, using a recursive implementation.
+factorial :: Int -> Module
+factorial n = do
+  global.var #n n
+
+  fn @'[Int] #factorial do
+    dup
+    const 1
+    gt
+    if #_ then do
+      dup
+      const 1
+      sub
+      call #factorial
+      mul
+    else do
+      drop
+      const 1
+
+  main do
+    local.get #n
+    call #factorial
+    print
+
 -- Squares all the elements in the host-provided memory segment.
 squareAll :: IORef (Vector Int) -> Module
 squareAll r = do
@@ -143,45 +185,3 @@ squareAll r = do
           else do
             nop
     seg.print #s
-
--- Calculate and print the factorial of n, using a recursive implementation.
-factorial :: Int -> Module
-factorial n = do
-  global.var #n n
-
-  fn @'[Int] #factorial do
-    dup
-    const 1
-    gt
-    if #_ then do
-      dup
-      const 1
-      sub
-      call #factorial
-      mul
-    else do
-      drop
-      const 1
-
-  main do
-    local.get #n
-    call #factorial
-    print
-
--- This programs traps with an out-of-bounds memory access.
-outOfBounds :: Module
-outOfBounds = main do
-  const 10
-  const ()
-  let_seg #s do
-    const 100
-    seg.load #s
-    print
-
--- This program traps with a division by zero.
-divByZero :: Module
-divByZero = main do
-  const @Int 1
-  const 0
-  i.div
-  print

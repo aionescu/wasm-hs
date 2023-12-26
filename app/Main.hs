@@ -2,7 +2,7 @@ module Main where
 
 import Data.Foldable(for_)
 import Data.IORef(newIORef)
-import Data.Vector qualified as V
+import GHC.IsList(IsList(..))
 import Prelude
 import System.Environment(getArgs)
 
@@ -12,17 +12,18 @@ import Examples
 main :: IO ()
 main = do
   args <- getArgs
-  r <- newIORef $ V.fromList [1 .. 10]
+  r <- newIORef [1 .. 10]
 
   let
     examples =
       [ ("countTo10", countTo10)
-      , ("divByZero", divByZero)
-      , ("fibonacci", fibonacci)
       , ("functions", functions)
       , ("recursion", recursion)
-      , ("squareAll", squareAll r)
+      , ("outOfBOunds", outOfBounds)
+      , ("divByZero", divByZero)
+      , ("fibonacci", fibonacci)
       , ("factorial", factorial 10)
+      , ("squareAll", squareAll r)
       ]
 
     selected =

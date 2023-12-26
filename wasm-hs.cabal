@@ -58,14 +58,33 @@ library
 
 executable wasm-hs
   import: ghc-flags
+  default-extensions:
+    OverloadedLists
 
   hs-source-dirs: app
   main-is: Main.hs
-
   other-modules:
     Examples
 
   build-depends:
-    base >=4.18 && <5
-    , vector ^>= 0.13
+    base >=4.19 && <5
+    , wasm-hs
+
+test-suite wasm-hs-test
+  import: ghc-flags
+  default-extensions:
+    OverloadedLists
+
+  type: exitcode-stdio-1.0
+
+  hs-source-dirs: test, app
+  main-is: Main.hs
+  other-modules:
+    Examples
+
+  build-depends:
+    base >=4.19 && <5
+    , silently ^>= 1.2.5
+    , tasty ^>= 1.4.3
+    , tasty-hunit ^>= 0.10.0.3
     , wasm-hs
