@@ -1,6 +1,6 @@
 module Examples where
 
-import Language.WASM.Prelude
+import Language.Wasm.Prelude
 
 -- Print the numbers from 1 to 10
 countTo10 :: Module

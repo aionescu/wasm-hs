@@ -1,4 +1,4 @@
-module Language.WASM.Module where
+module Language.Wasm.Module where
 
 import Data.IORef(IORef, newIORef)
 import Data.Kind(Constraint)
@@ -7,15 +7,15 @@ import GHC.Exts(withDict)
 import GHC.TypeError(ErrorMessage(..), Unsatisfiable)
 import Prelude
 
-import Language.WASM.Instr
+import Language.Wasm.Instr
 
 class NoMain where
   dummy :: () -- Needed for 'withDict' to work
 
-instance Unsatisfiable (Text "Each WASM module must contain exactly one 'main' definition.") => NoMain where
+instance Unsatisfiable (Text "Each Wasm module must contain exactly one 'main' definition.") => NoMain where
   dummy = ()
 
--- A 'Mod'ule encapsulates a series of WASM definitions (global variables, segments, and functions).
+-- A 'Mod'ule encapsulates a series of Wasm definitions (global variables, segments, and functions).
 -- The 'before' constraint represents definitions that are already in scope,
 -- and the 'after' constraint represents the definitions that are added by the module.
 data Mod (before :: Constraint) (after :: Constraint) where

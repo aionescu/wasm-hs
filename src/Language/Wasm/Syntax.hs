@@ -1,6 +1,6 @@
 {- HLINT IGNORE "Use camelCase" -}
 {-# OPTIONS_GHC -Wno-orphans #-} -- The IsLabel instance is technically orphan, due to the '~' trick
-module Language.WASM.Syntax where
+module Language.Wasm.Syntax where
 
 import Data.IORef(IORef)
 import Data.Vector(Vector)
@@ -8,8 +8,8 @@ import GHC.TypeLits(KnownSymbol, SSymbol, symbolSing)
 import GHC.OverloadedLabels(IsLabel(..))
 import Prelude hiding ((>>), const, not, div, mod, print)
 
-import Language.WASM.Instr
-import Language.WASM.Module
+import Language.Wasm.Instr
+import Language.Wasm.Module
 
 -- This module contains syntax sugar that improves the ergonomics of the DSL.
 

@@ -1,4 +1,4 @@
-module Language.WASM.Instr where
+module Language.Wasm.Instr where
 
 import Data.Bool(bool)
 import Data.IORef(IORef, readIORef, writeIORef, newIORef, modifyIORef')
@@ -79,7 +79,7 @@ instance Append a b c => Append (x : a) b (x : c) where
 
 type Stack = [Type]
 
--- An 'Instr i o' is a WASM instruction that takes an input stack 'i'
+-- An 'Instr i o' is a Wasm instruction that takes an input stack 'i'
 -- and produces an output stack 'o'.
 data Instr (input :: Stack) (output :: Stack) where
   Nop :: Instr i i

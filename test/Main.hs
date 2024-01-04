@@ -8,7 +8,7 @@ import System.IO.Silently(capture_)
 import Test.Tasty
 import Test.Tasty.HUnit
 
-import Language.WASM.Module
+import Language.Wasm.Module
 import Examples
 
 testOutput :: TestName -> Module -> String -> TestTree

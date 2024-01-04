@@ -6,9 +6,9 @@
   <img src="assets/logo.png" alt="wasm-hs Logo" width="150" height="150"/>
 </div>
 
-This project provides an embedded domain-specific language (eDSL) that enables the embedding of a significant subset of WASM into Haskell, in a type-safe way (i.e. writing invalid WASM results in a Haskell type error).
+This project provides an embedded domain-specific language (eDSL) that enables the embedding of a significant subset of WebAssembly into Haskell, in a type-safe way (i.e. writing invalid Wasm results in a Haskell type error).
 
-Below is a simple example of the DSL, a WASM program that counts up to 10:
+Below is a simple example of the DSL, a Wasm program that counts up to 10:
 
 ```haskell
 countTo10 = main do
@@ -26,7 +26,7 @@ countTo10 = main do
       br_if #next
 ```
 
-## Supported WASM features
+## Supported WebAssembly features
 
 * Arithmetic and comparison instructions
 * Blocks and structured control-flow
@@ -36,9 +36,9 @@ countTo10 = main do
 
 ## Ergonomics
 
-In order to provide better ergonomics as a Haskell DSL, the project deviates from the WASM specification in a few aspects:
+In order to provide better ergonomics as a Haskell DSL, the project deviates from the WebAssembly specification in a few aspects:
 
-* The operand stack can contain values of any Haskell type, not just the WASM primitive types (`i32`, `i64`, `f32`, `f64`).
+* The operand stack can contain values of any Haskell type, not just the Wasm primitive types (`i32`, `i64`, `f32`, `f64`).
 * Arithmetic and comparison instructions are overloaded using the standard Haskell typeclasses (`Num`, `Ord` etc.).
 * Boolean instructions (comparisons, `br_if` etc.) use Haskell's native `Bool` type, rather than encoding booleans as `0` or `1` of type `i32`.
 * Variables use alphanumeric names (rather than numeric indices), and are scoped explicitly (using a `let'` instruction), rather than being function-scoped.
@@ -49,21 +49,21 @@ In order to provide better ergonomics as a Haskell DSL, the project deviates fro
 
 The project also includes an interpreter that uses continuation-passing style for efficient jumps, and local instances (via [`WithDict`](https://hackage.haskell.org/package/base/docs/GHC-Exts.html#t:WithDict)) for constant-time variable lookup.
 
-Global variables and segments can be initialised with host-provided mutable references (`IORef`s), which allows the host to pass inputs to the WASM module, and inspect its outputs and side-effects.
+Global variables and segments can be initialised with host-provided mutable references (`IORef`s), which allows the host to pass inputs to the Wasm module, and inspect its outputs and side-effects.
 
 ## Limitations
 
-* The DSL only allows the construction of self-contained WASM modules (i.e. no external imports or exports).
+* The DSL only allows the construction of self-contained Wasm modules (i.e. no external imports or exports).
 * Functions can only refer to functions defined before them in the same module (and to themselves), thus mutually-recursive functions are not supported.
 * Indirect calls and `br_table` are not supported.
 
 ## Project Structure
 
-The main modules of the library are [`Language.WASM.Instr`](src/Language/WASM/Instr.hs), which defines the core `Instr` AST datatype and evaluation functions; and [`Language.WASM.Module`](src/Language/WASM/Module.hs), which builds upon `Instr` and defines a datatype for bundling WASM definitions into modules, as well as module evaluation functions.
+The main modules of the library are [`Language.Wasm.Instr`](src/Language/Wasm/Instr.hs), which defines the core `Instr` AST datatype and evaluation functions; and [`Language.Wasm.Module`](src/Language/Wasm/Module.hs), which builds upon `Instr` and defines a datatype for bundling definitions into modules, as well as module evaluation functions.
 
-[`Language.WASM.Syntax`](src/Language/WASM/Syntax.hs) defines the DSL's syntactic sugar, and [`Language.WASM.Prelude`](src/Language/WASM/Prelude.hs) ties everything together into a single import.
+[`Language.Wasm.Syntax`](src/Language/Wasm/Syntax.hs) defines the DSL's syntactic sugar, and [`Language.Wasm.Prelude`](src/Language/Wasm/Prelude.hs) ties everything together into a single import.
 
-The [`Examples`](app/Examples.hs) module defines a number of example WASM programs, and [`Main`](app/Main.hs) contains the driver code.
+The [`Examples`](app/Examples.hs) module defines a number of example Wasm programs, and [`Main`](app/Main.hs) contains the driver code.
 
 ## Dependencies
 
@@ -80,7 +80,7 @@ The project has no external (non-Haskell) dependencies, and can simply be built 
 cabal build
 ```
 
-Running the project with no arguments will run all the WASM example programs:
+Running the project with no arguments will run all the example programs:
 
 ```sh
 cabal run

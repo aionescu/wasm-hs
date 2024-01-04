@@ -47,10 +47,10 @@ library
   hs-source-dirs: src
   exposed-modules:
     Data.HList
-    Language.WASM.Instr
-    Language.WASM.Module
-    Language.WASM.Prelude
-    Language.WASM.Syntax
+    Language.Wasm.Instr
+    Language.Wasm.Module
+    Language.Wasm.Prelude
+    Language.Wasm.Syntax
 
   build-depends:
     base >=4.19 && <5

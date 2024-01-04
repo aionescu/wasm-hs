@@ -6,7 +6,7 @@ import GHC.IsList(IsList(..))
 import Prelude
 import System.Environment(getArgs)
 
-import Language.WASM.Module(evalModule)
+import Language.Wasm.Module(evalModule)
 import Examples
 
 main :: IO ()
