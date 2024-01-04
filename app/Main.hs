@@ -28,10 +28,13 @@ main = do
 
     selected =
       case args of
-        [] -> examples
-        _ -> filter (\(name, _) -> name `elem` args) examples
+        [] -> fst <$> examples
+        _ -> args
 
-  for_ selected \(name, mod) -> do
-    putStrLn $ name <> ": "
-    evalModule mod
-    putStrLn ""
+  for_ selected \name ->
+    case lookup name examples of
+      Nothing -> putStrLn $ "Unknown example: " <> name
+      Just mod -> do
+        putStrLn $ name <> ": "
+        evalModule mod
+        putStrLn ""
