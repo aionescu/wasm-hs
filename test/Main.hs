@@ -4,7 +4,7 @@ import Data.IORef(newIORef, readIORef)
 import GHC.IsList(IsList(..))
 import Prelude
 import System.IO(hFlush, stdout)
-import System.IO.Silently(capture_)
+import System.IO.Silently(capture_, silence)
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -18,7 +18,7 @@ testOutput modName mod expected =
 testHostSharedMemory :: Assertion
 testHostSharedMemory = do
   r <- newIORef [1 .. 10]
-  evalModule $ squareAll r
+  silence $ evalModule $ squareAll r
   readIORef r >>= (@?= [1,4,9,16,25,36,49,64,81,100])
 
 tests :: TestTree

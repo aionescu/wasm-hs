@@ -97,3 +97,11 @@ If you specify an example multiple times, it will be executed that many times. T
 ```sh
 cabal run . -- squareAll squareAll
 ```
+
+## Running the tests
+
+To run the library's test-suite, use the following command:
+
+```sh
+cabal run wasm-hs-test
+```
