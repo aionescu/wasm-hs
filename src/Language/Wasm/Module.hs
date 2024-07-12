@@ -4,16 +4,9 @@ import Data.IORef(IORef, newIORef)
 import Data.Kind(Constraint)
 import Data.Vector(Vector)
 import GHC.Exts(withDict)
-import GHC.TypeError(ErrorMessage(..), Unsatisfiable)
 import Prelude
 
 import Language.Wasm.Instr
-
-class NoMain where
-  dummy :: () -- Needed for 'withDict' to work
-
-instance Unsatisfiable (Text "Each Wasm module must contain exactly one 'main' definition.") => NoMain where
-  dummy = ()
 
 -- A 'Mod'ule encapsulates a series of Wasm definitions (global variables, segments, and functions).
 -- The 'before' constraint represents definitions that are already in scope,
@@ -29,10 +22,6 @@ data Mod (before :: Constraint) (after :: Constraint) where
   GlobalSegRef :: forall s a c. IORef (Vector a) -> Mod c (Seg s a, c)
 
   Fn :: forall f i o c. ((Return o, Fn f i o, c) => Instr i o) -> Mod c (Fn f i o, c)
-
-  -- Since all the other constructors _add_ constraints to the output,
-  -- if you have a 'Mod c ()' value, it's guaranteed to end with a 'Main'.
-  Main :: (c => NoMain) => (c => Instr '[] '[]) -> Mod c ()
 
 -- Conceptually, evalMod takes a constraint as input, and produces an updated
 -- constraint as output (plus IO, for allocating variables and executing instructions):
@@ -56,11 +45,8 @@ evalMod m k =
     GlobalSegRef @s r -> withDict @(Seg s _) r k
 
     Fn @f @i @o e -> withDict @(Fn f _ _) @((Return o, Fn f i o) => _) (eval e) k
-    Main e -> evalInstr e
 
-type Module = Mod NoMain ()
+data Module = forall c. (c => Fn "main" '[] '[]) => Module { mod :: Mod () c }
 
--- Since the 'Main' constructor drops the final continuation, and the 'Mod () ()' type guarantees
--- the module ends with a 'Main', the final continuation can simply be 'undefined'.
-evalModule :: Module -> IO ()
-evalModule m = withDict @NoMain () $ evalMod m undefined
+runWasm :: Module -> IO ()
+runWasm (Module m) = evalMod m $ evalInstr $ Call @"main" @'[] @'[]

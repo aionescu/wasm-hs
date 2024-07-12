@@ -181,5 +181,5 @@ not = Not
 ret :: forall i b i' o. (Return i, Append i b i') => Instr i' o
 ret = Ret @i
 
-main :: (c => NoMain) => (c => Instr '[] '[]) -> Mod c ()
-main = Main
+wasm :: forall c. (c => Fn "main" '[] '[]) => Mod () c -> Module
+wasm = Module

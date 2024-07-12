@@ -13,12 +13,12 @@ import Language.Wasm.Examples
 
 testOutput :: TestName -> Module -> String -> TestTree
 testOutput modName mod expected =
-  testCase modName $ capture_ (evalModule mod *> hFlush stdout) >>= (@?= expected)
+  testCase modName $ capture_ (runWasm mod *> hFlush stdout) >>= (@?= expected)
 
 testHostSharedMemory :: Assertion
 testHostSharedMemory = do
   r <- newIORef [1 .. 10]
-  silence $ evalModule $ squareAll r
+  silence $ runWasm $ squareAll r
   readIORef r >>= (@?= [1,4,9,16,25,36,49,64,81,100])
 
 tests :: TestTree

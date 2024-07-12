@@ -11,19 +11,21 @@ This project provides an embedded domain-specific language (eDSL) that enables t
 Below is a simple example of the DSL, a Wasm program that counts up to 10:
 
 ```haskell
-countTo10 = main do
-  const @Int 0
-  let' #i do
-    loop #next do
-      local.get #i
-      const 1
-      add
-      local.tee #i
-      dup
-      print
-      const 10
-      cmp.lt
-      br_if #next
+countTo10 :: Module
+countTo10 = wasm do
+  fn #main do
+    const @Int 0
+    let' #i do
+      loop #next do
+        local.get #i
+        const 1
+        add
+        local.tee #i
+        dup
+        print
+        const 10
+        cmp.lt
+        br_if #next
 ```
 
 ## Supported WebAssembly features

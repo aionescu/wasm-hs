@@ -4,8 +4,8 @@ import Language.Wasm.Prelude
 
 -- Print the numbers from 1 to 10
 countTo10 :: Module
-countTo10 =
-  main do
+countTo10 = wasm do
+  fn #main do
     const @Int 0
     let' #i do
       loop #next do
@@ -21,7 +21,7 @@ countTo10 =
 
 -- Small example illustrating functions and globals.
 functions :: Module
-functions = do
+functions = wasm do
   global.var #g 2
 
   fn @'[Int] #add_to_g do
@@ -38,7 +38,7 @@ functions = do
     local.get #g
     print
 
-  main do
+  fn #main do
     const 2
     call #add_to_g_twice
     call #print_g
@@ -47,7 +47,7 @@ functions = do
 -- Function #f just prints its argument and keeps calling
 -- itself with a smaller and smaller argument, until it reaches 0.
 recursion :: Module
-recursion = do
+recursion = wasm do
   fn @'[Int] #f do
     dup
     const 0
@@ -62,34 +62,36 @@ recursion = do
     else
       drop
 
-  main do
+  fn #main do
     const 10
     call #f
 
 -- This programs traps with an out-of-bounds memory access.
 outOfBounds :: Module
-outOfBounds = main do
-  const 10
-  const ()
-  let_seg #s do
-    const 100
-    seg.load #s
-    print
+outOfBounds = wasm do
+  fn #main do
+    const 10
+    const ()
+    let_seg #s do
+      const 100
+      seg.load #s
+      print
 
 -- This program traps with a division by zero.
 divByZero :: Module
-divByZero = main do
-  const @Int 1
-  const 0
-  i.div
-  print
+divByZero = wasm do
+  fn #main do
+    const @Int 1
+    const 0
+    i.div
+    print
 
 -- Allocate a segment to store the first n fibonacci numbers, and print it.
 fibonacci :: Module
-fibonacci = do
+fibonacci = wasm do
   global.var #n 10
 
-  main do
+  fn #main do
     local.get #n
     const @Int 0
     let_seg #fibs do
@@ -133,7 +135,7 @@ fibonacci = do
 
 -- Calculate and print the factorial of n, using a recursive implementation.
 factorial :: Int -> Module
-factorial n = do
+factorial n = wasm do
   global.var #n n
 
   fn @'[Int] #factorial do
@@ -150,17 +152,17 @@ factorial n = do
       drop
       const 1
 
-  main do
+  fn #main do
     local.get #n
     call #factorial
     print
 
 -- Squares all the elements in the host-provided memory segment.
 squareAll :: IORef (Vector Int) -> Module
-squareAll r = do
+squareAll r = wasm do
   global.seg_ref #s r
 
-  main do
+  fn #main do
     seg.size #s
     let' #n do
       const 0

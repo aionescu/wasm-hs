@@ -6,7 +6,7 @@ import GHC.IsList(IsList(..))
 import Prelude
 import System.Environment(getArgs)
 
-import Language.Wasm.Module(evalModule)
+import Language.Wasm.Module(runWasm)
 import Language.Wasm.Examples
 
 main :: IO ()
@@ -36,5 +36,5 @@ main = do
       Nothing -> putStrLn $ "Unknown example: " <> name
       Just mod -> do
         putStrLn $ name <> ": "
-        evalModule mod
+        runWasm mod
         putStrLn ""
