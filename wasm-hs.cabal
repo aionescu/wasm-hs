@@ -4,7 +4,7 @@ name: wasm-hs
 version: 0.0.0.0
 license: GPL-3.0-only
 license-file: LICENSE.txt
-copyright: Copyright (C) 2023 Alex Ionescu
+copyright: Copyright (C) 2023-2024 Alex Ionescu
 build-type: Simple
 
 extra-doc-files:
@@ -47,6 +47,7 @@ library
   hs-source-dirs: src
   exposed-modules:
     Data.HList
+    Language.Wasm.Examples
     Language.Wasm.Instr
     Language.Wasm.Module
     Language.Wasm.Prelude
@@ -63,8 +64,6 @@ executable wasm-hs
 
   hs-source-dirs: app
   main-is: Main.hs
-  other-modules:
-    Examples
 
   build-depends:
     base >=4.19 && <5
@@ -77,10 +76,8 @@ test-suite wasm-hs-test
 
   type: exitcode-stdio-1.0
 
-  hs-source-dirs: test, app
+  hs-source-dirs: test
   main-is: Main.hs
-  other-modules:
-    Examples
 
   build-depends:
     base >=4.19 && <5

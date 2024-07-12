@@ -63,7 +63,7 @@ The main modules of the library are [`Language.Wasm.Instr`](src/Language/Wasm/In
 
 [`Language.Wasm.Syntax`](src/Language/Wasm/Syntax.hs) defines the DSL's syntactic sugar, and [`Language.Wasm.Prelude`](src/Language/Wasm/Prelude.hs) ties everything together into a single import.
 
-The [`Examples`](app/Examples.hs) module defines a number of example Wasm programs, and [`Main`](app/Main.hs) contains the driver code.
+The [`Language.Wasm.Examples`](src/Language/Wasm/Examples.hs) module defines a number of example Wasm programs, and [`Main`](app/Main.hs) contains the driver code.
 
 ## Dependencies
 

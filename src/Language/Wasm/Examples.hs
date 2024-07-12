@@ -1,4 +1,4 @@
-module Examples where
+module Language.Wasm.Examples where
 
 import Language.Wasm.Prelude
 

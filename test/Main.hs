@@ -9,7 +9,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 
 import Language.Wasm.Module
-import Examples
+import Language.Wasm.Examples
 
 testOutput :: TestName -> Module -> String -> TestTree
 testOutput modName mod expected =

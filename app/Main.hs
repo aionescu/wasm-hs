@@ -7,7 +7,7 @@ import Prelude
 import System.Environment(getArgs)
 
 import Language.Wasm.Module(evalModule)
-import Examples
+import Language.Wasm.Examples
 
 main :: IO ()
 main = do
