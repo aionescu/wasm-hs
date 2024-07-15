@@ -39,14 +39,14 @@ let_seg _ = LetSeg
 call :: forall i o b i' o' f. (Fn f i o, Append i b i', Append o b o') => SSymbol f -> Instr i' o'
 call _ = Call @f
 
-fn :: forall i o f cs. (All cs => Fn f i o) => SSymbol f -> ((Return o, All cs) => Instr i o) -> Mod cs
-fn _ = Fn @f
-
-let_global :: forall a v cs. (All cs => Var v a) => SSymbol v -> a -> Mod cs
+let_global :: forall a v cs is. (All cs => Var v a) => SSymbol v -> a -> Mod cs (Var v a : is) is
 let_global _ = LetGlobal @v
 
-let_global_seg :: forall a s cs. (All cs => Seg s a) => SSymbol s -> Vector a -> Mod cs
+let_global_seg :: forall a s cs is. (All cs => Seg s a) => SSymbol s -> Vector a -> Mod cs (Seg s a : is) is
 let_global_seg _ = LetGlobalSeg @s
+
+fn :: forall i o f cs is. (All cs => Fn f i o) => SSymbol f -> ((Return o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
+fn _ = Fn @f
 
 -- RebindableSyntax
 
@@ -60,8 +60,8 @@ instance (o ~ i', i ~ i'', o' ~ o'') => HSeq (Instr i o) (Instr i' o') (Instr i'
   (>>) :: Instr i o -> Instr i' o' -> Instr i'' o''
   (>>) = Seq
 
-instance (cs ~ cs', cs ~ cs'') => HSeq (Mod cs) (Mod cs') (Mod cs'') where
-  (>>) :: Mod cs -> Mod cs' -> Mod cs''
+instance (cs ~ cs', cs ~ cs'', os ~ is', is ~ is'', os' ~ os'') => HSeq (Mod cs is os) (Mod cs' is' os') (Mod cs'' is'' os'') where
+  (>>) :: Mod cs is os -> Mod cs' is' os' -> Mod cs'' is'' os''
   (>>) = MSeq
 
 ifThenElse :: Instr i' (Bool : i) -> Instr i o -> Instr i o -> Instr i' o

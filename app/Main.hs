@@ -5,7 +5,7 @@ import GHC.IsList(IsList(..))
 import Prelude
 import System.Environment(getArgs)
 
-import Language.Wasm.Module(runWasm, someMod)
+import Language.Wasm.Module(runModule, someModule)
 import Language.Wasm.Examples
 
 main :: IO ()
@@ -14,15 +14,15 @@ main = do
 
   let
     examples =
-      [ ("countTo10", someMod countTo10)
-      , ("functions", someMod functions)
-      , ("recursion", someMod recursion)
-      , ("outOfBOunds", someMod outOfBounds)
-      , ("divByZero", someMod divByZero)
-      , ("fibonacci", someMod fibonacci)
-      , ("factorial", someMod $ factorial 10)
-      , ("squareAll", someMod $ squareAll [1 .. 10])
-      , ("mutualRecursion", someMod mutualRecursion)
+      [ ("countTo10", someModule countTo10)
+      , ("functions", someModule functions)
+      , ("recursion", someModule recursion)
+      , ("outOfBOunds", someModule outOfBounds)
+      , ("divByZero", someModule divByZero)
+      , ("fibonacci", someModule fibonacci)
+      , ("factorial", someModule $ factorial 10)
+      , ("squareAll", someModule $ squareAll [1 .. 10])
+      , ("mutualRecursion", someModule mutualRecursion)
       ]
 
     selected =
@@ -35,5 +35,5 @@ main = do
       Nothing -> putStrLn $ "Unknown example: " <> name
       Just mod -> do
         putStrLn $ name <> ": "
-        runWasm mod
+        runModule mod
         putStrLn ""
