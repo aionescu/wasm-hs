@@ -5,7 +5,7 @@ import GHC.IsList(IsList(..))
 import Prelude
 import System.Environment(getArgs)
 
-import Language.Wasm.Module(runModule, someModule)
+import Language.Wasm.Module
 import Language.Wasm.Examples
 
 main :: IO ()
@@ -27,12 +27,12 @@ main = do
 
     selected =
       case args of
-        [] -> fst <$> examples
+        [] -> fst <$> examples -- If 'args' is empty, get the names of all 'examples'
         _ -> args
 
   for_ selected \name ->
     case lookup name examples of
-      Nothing -> putStrLn $ "Unknown example: " <> name
+      Nothing -> putStrLn $ "Unknown example: " <> name <> "\n"
       Just mod -> do
         putStrLn $ name <> ": "
         runModule mod

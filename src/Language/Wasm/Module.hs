@@ -3,7 +3,7 @@ module Language.Wasm.Module where
 import Data.IORef(IORef, newIORef, writeIORef)
 import Data.Kind(Constraint)
 import Data.Vector(Vector)
-import GHC.Exts(withDict, WithDict)
+import GHC.Exts(WithDict(..))
 import Prelude
 
 import Language.Wasm.Instr
@@ -61,7 +61,6 @@ type Module cs = Mod cs cs '[]
 -- To execute a module, first initialize dummy IORefs for each definition (handled by 'initialize' and the 'Initializable'
 -- typeclass), then fill all the IORefs with the values of the definitions ('initMod'), and finally call 'main',
 -- then run the user-provided continuation (which has access to all the IORefs via 'cs').
-
 runModuleWith :: forall r cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> (All cs => IO r) -> IO r
 runModuleWith m k =
   initialize @cs do

@@ -1,7 +1,7 @@
 module Language.Wasm.Instr where
 
 import Data.Bool(bool)
-import Data.IORef(IORef, readIORef, writeIORef, newIORef, modifyIORef')
+import Data.IORef(IORef, readIORef, modifyIORef', newIORef, writeIORef)
 import Data.Kind(Type)
 import Data.Vector(Vector)
 import Data.Vector qualified as V

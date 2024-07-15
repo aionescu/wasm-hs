@@ -3,7 +3,7 @@
 module Language.Wasm.Syntax where
 
 import Data.Vector(Vector)
-import GHC.TypeLits(KnownSymbol, SSymbol, symbolSing)
+import GHC.TypeLits(KnownSymbol(..), SSymbol)
 import GHC.OverloadedLabels(IsLabel(..))
 import Prelude hiding ((>>), const, not, div, mod, print)
 
