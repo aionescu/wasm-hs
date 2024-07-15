@@ -40,16 +40,16 @@ instance (WithDict c (IORef a), Initializable cs) => Initializable (c : cs) wher
 data Mod (cs :: [Constraint]) (is :: [Constraint]) (os :: [Constraint]) where
   MSeq :: Mod cs is os -> Mod cs os os' -> Mod cs is os'
 
-  LetGlobal :: forall v a cs is. (All cs => Var v a) => a -> Mod cs (Var v a : is) is
-  LetGlobalSeg :: forall s a cs is. (All cs => Seg s a) => Vector a -> Mod cs (Seg s a : is) is
+  Global :: forall v a cs is. (All cs => Var v a) => a -> Mod cs (Var v a : is) is
+  GlobalSeg :: forall s a cs is. (All cs => Seg s a) => Vector a -> Mod cs (Seg s a : is) is
 
   Fn :: forall f i o cs is. (All cs => Fn f i o) => ((Return o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
 
 initMod :: All cs => Mod cs is os -> IO ()
 initMod = \case
   MSeq a b -> initMod a *> initMod b
-  LetGlobal @v a -> writeIORef (varRef @v) a
-  LetGlobalSeg @s v -> writeIORef (segRef @s) v
+  Global @v a -> writeIORef (varRef @v) a
+  GlobalSeg @s v -> writeIORef (segRef @s) v
   Fn @f e -> writeIORef (fnRef @f) $ FnCont $ eval e
 
 type Module cs = Mod cs cs '[]

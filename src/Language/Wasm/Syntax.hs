@@ -39,11 +39,11 @@ let_seg _ = LetSeg
 call :: forall i o b i' o' f. (Fn f i o, Append i b i', Append o b o') => SSymbol f -> Instr i' o'
 call _ = Call @f
 
-let_global :: forall a v cs is. (All cs => Var v a) => SSymbol v -> a -> Mod cs (Var v a : is) is
-let_global _ = LetGlobal @v
+global :: forall a v cs is. (All cs => Var v a) => SSymbol v -> a -> Mod cs (Var v a : is) is
+global _ = Global @v
 
-let_global_seg :: forall a s cs is. (All cs => Seg s a) => SSymbol s -> Vector a -> Mod cs (Seg s a : is) is
-let_global_seg _ = LetGlobalSeg @s
+global_seg :: forall a s cs is. (All cs => Seg s a) => SSymbol s -> Vector a -> Mod cs (Seg s a : is) is
+global_seg _ = GlobalSeg @s
 
 fn :: forall i o f cs is. (All cs => Fn f i o) => SSymbol f -> ((Return o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
 fn _ = Fn @f

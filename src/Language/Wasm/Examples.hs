@@ -22,7 +22,7 @@ countTo10 = do
 -- Small example illustrating functions and globals.
 functions :: Module '[Var "g" Int, Fn "add_to_g" '[Int] '[], Fn "add_to_g_twice" '[Int] '[], Fn "print_g" '[] '[], Fn "main" '[] '[]]
 functions = do
-  let_global #g 2
+  global #g 2
 
   fn #add_to_g do
     local.get #g
@@ -88,7 +88,7 @@ divByZero = do
 -- Allocate a segment to store the first n fibonacci numbers, and print it.
 fibonacci :: Module '[Var "n" Int, Fn "main" '[] '[]]
 fibonacci = do
-  let_global #n 10
+  global #n 10
 
   fn #main do
     local.get #n
@@ -135,7 +135,7 @@ fibonacci = do
 -- Calculate and print the factorial of n, using a recursive implementation.
 factorial :: Int -> Module '[Var "n" Int, Fn "factorial" '[Int] '[Int], Fn "main" '[] '[]]
 factorial n = do
-  let_global #n n
+  global #n n
 
   fn #factorial do
     dup
@@ -159,7 +159,7 @@ factorial n = do
 -- Squares all the elements in the host-provided memory segment.
 squareAll :: Vector Int -> Module '[Seg "s" Int, Fn "main" '[] '[]]
 squareAll v = do
-  let_global_seg #s v
+  global_seg #s v
 
   fn #main do
     seg.size #s
@@ -221,4 +221,4 @@ mutualRecursion = do
     local.get #x
     call #g
 
-  let_global #x 7
+  global #x 7
