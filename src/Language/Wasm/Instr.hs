@@ -116,7 +116,7 @@ data Instr (input :: Stack) (output :: Stack) where
 
   Block :: (Label l o => Instr i o) -> Instr i o
   Loop :: (Label l i => Instr i o) -> Instr i o
-  If :: (Label l o => Instr i o) -> (Label l o => Instr i o) -> Instr (Bool : i) o
+  If :: Instr i o -> Instr i o -> Instr (Bool : i) o
 
   Br :: (Label l i, Append i b i') => Instr i' o
   BrIf :: Label l i => Instr (Bool : i) i
@@ -195,7 +195,7 @@ eval e k =
 
     Block @l e -> withDict @(Label l _) k $ eval e k
     Loop @l e -> let kl = withDict @(Label l _) kl $ eval e k in kl
-    If @l e1 e2 -> \(b :> i) -> withDict @(Label l _) k $ eval (bool e2 e1 b) k i
+    If e1 e2 -> \(b :> i) -> eval (bool e2 e1 b) k i
 
     Br @l -> \i -> unappend i \i _ -> labelCont @l i
     BrIf @l -> \(b :> i) -> bool k (labelCont @l) b i

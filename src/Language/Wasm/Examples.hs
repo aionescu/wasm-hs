@@ -51,9 +51,8 @@ recursion = do
   fn @'[Int] #f do
     dup
     const 0
-    gt
 
-    if #_ then do
+    if gt then do
       dup
       print
       const 1
@@ -108,8 +107,8 @@ fibonacci = do
         loop #l do
           local.get #i
           local.get #n
-          lt
-          if #_ then do
+
+          if lt then do
             local.get #i
             const 2
             sub
@@ -141,8 +140,8 @@ factorial n = do
   fn @'[Int] #factorial do
     dup
     const 1
-    gt
-    if #_ then do
+
+    if gt then do
       dup
       const 1
       sub
@@ -170,8 +169,8 @@ squareAll v = do
         loop #l do
           local.get #i
           local.get #n
-          lt
-          if #_ then do
+
+          if lt then do
             local.get #i
             dup
             seg.load #s
@@ -193,8 +192,8 @@ mutualRecursion = do
   fn @'[Int] @'[] #f do
     dup
     const 0
-    eq
-    if #_ then
+
+    if eq then
       drop
     else do
       dup
@@ -206,8 +205,8 @@ mutualRecursion = do
   fn @'[Int] @'[] #g do
     dup
     const 0
-    eq
-    if #_ then
+
+    if eq then
       drop
     else do
       dup

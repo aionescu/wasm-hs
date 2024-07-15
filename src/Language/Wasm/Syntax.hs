@@ -64,8 +64,8 @@ instance (cs ~ cs', cs ~ cs'') => HSeq (Mod cs) (Mod cs') (Mod cs'') where
   (>>) :: Mod cs -> Mod cs' -> Mod cs''
   (>>) = MSeq
 
-ifThenElse :: SSymbol s -> (Label s o => Instr i o) -> (Label s o => Instr i o) -> Instr (Bool : i) o
-ifThenElse _ = If
+ifThenElse :: Instr i' (Bool : i) -> Instr i o -> Instr i o -> Instr i' o
+ifThenElse c t f = Seq c $ If t f
 
 -- OverloadedRecordDot
 
