@@ -6,41 +6,47 @@
   <img src="assets/logo.png" alt="wasm-hs Logo" width="150" height="150"/>
 </div>
 
-This project provides an embedded domain-specific language (eDSL) that enables the embedding of a significant subset of WebAssembly into Haskell, in a type-safe way (i.e. writing invalid Wasm results in a Haskell type error).
+This project provides an embedded domain-specific language (eDSL) for encoding WebAssembly in Haskell in a type-safe way (i.e. writing invalid Wasm results in a Haskell type error).
 
-Below is a simple example of the DSL, a Wasm program that counts up to 10:
+Below is a simple example of the DSL, a Wasm program that computes the factorial of 5:
 
 ```haskell
-countTo10 :: Module
-countTo10 = wasm do
+factorial :: Module '[Fn "factorial" '[Int] '[Int], Fn "main" '[] '[]]
+factorial = do
+  fn #factorial do
+    dup
+    const 1
+
+    if gt then do
+      dup
+      const 1
+      sub
+      call #factorial
+      mul
+    else do
+      drop
+      const 1
+
   fn #main do
-    const @Int 0
-    let' #i do
-      loop #next do
-        local.get #i
-        const 1
-        add
-        local.tee #i
-        dup
-        print
-        const 10
-        cmp.lt
-        br_if #next
+    const 5
+    call #factorial
+    print
 ```
 
-## Supported WebAssembly features
+## Supported features
 
 * Arithmetic and comparison instructions
 * Blocks and structured control-flow
 * Local and global variables
 * Type-safe dynamic memory access
-* Recursive functions
+* Functions, including mutual recursion
 
 ## Ergonomics
 
-In order to provide better ergonomics as a Haskell DSL, the project deviates from the WebAssembly specification in a few aspects:
+To provide better ergonomics as a Haskell DSL, the project deviates from the WebAssembly specification in a few aspects:
 
 * The operand stack can contain values of any Haskell type, not just the Wasm primitive types (`i32`, `i64`, `f32`, `f64`).
+* Additional instructions are supported (`dup`, `swap`) that are not present in Wasm.
 * Arithmetic and comparison instructions are overloaded using the standard Haskell typeclasses (`Num`, `Ord` etc.).
 * Boolean instructions (comparisons, `br_if` etc.) use Haskell's native `Bool` type, rather than encoding booleans as `0` or `1` of type `i32`.
 * Variables use alphanumeric names (rather than numeric indices), and are scoped explicitly (using a `let'` instruction), rather than being function-scoped.
@@ -51,13 +57,10 @@ In order to provide better ergonomics as a Haskell DSL, the project deviates fro
 
 The project also includes an interpreter that uses continuation-passing style for efficient jumps, and local instances (via [`WithDict`](https://hackage.haskell.org/package/base/docs/GHC-Exts.html#t:WithDict)) for constant-time variable lookup.
 
-Global variables and segments can be initialised with host-provided mutable references (`IORef`s), which allows the host to pass inputs to the Wasm module, and inspect its outputs and side-effects.
-
 ## Limitations
 
 * The DSL only allows the construction of self-contained Wasm modules (i.e. no external imports or exports).
-* Functions can only refer to functions defined before them in the same module (and to themselves), thus mutually-recursive functions are not supported.
-* Indirect calls and `br_table` are not supported.
+* Indirect calls, `br_table`, and SIMD instructions are not supported.
 
 ## Project Structure
 
@@ -92,12 +95,6 @@ If you want to run only specific examples, pass their names as arguments:
 
 ```sh
 cabal run . -- factorial fibonacci
-```
-
-If you specify an example multiple times, it will be executed that many times. This can be used to observe side-effects such as mutating memory shared by the host:
-
-```sh
-cabal run . -- squareAll squareAll
 ```
 
 ## Running the tests
