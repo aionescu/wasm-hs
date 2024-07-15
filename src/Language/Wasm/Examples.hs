@@ -3,8 +3,8 @@ module Language.Wasm.Examples where
 import Language.Wasm.Prelude
 
 -- Print the numbers from 1 to 10
-countTo10 :: Module
-countTo10 = wasm do
+countTo10 :: Mod '[Fn "main" '[] '[]]
+countTo10 = do
   fn #main do
     const @Int 0
     let' #i do
@@ -20,9 +20,9 @@ countTo10 = wasm do
         br_if #next
 
 -- Small example illustrating functions and globals.
-functions :: Module
-functions = wasm do
-  global.var #g 2
+functions :: Mod '[Var "g" Int, Fn "add_to_g" '[Int] '[], Fn "add_to_g_twice" '[Int] '[], Fn "print_g" '[] '[], Fn "main" '[] '[]]
+functions = do
+  let_global #g 2
 
   fn @'[Int] #add_to_g do
     local.get #g
@@ -46,8 +46,8 @@ functions = wasm do
 -- Small example to illustrate recursive functions.
 -- Function #f just prints its argument and keeps calling
 -- itself with a smaller and smaller argument, until it reaches 0.
-recursion :: Module
-recursion = wasm do
+recursion :: Mod '[Fn "f" '[Int] '[], Fn "main" '[] '[]]
+recursion = do
   fn @'[Int] #f do
     dup
     const 0
@@ -67,8 +67,8 @@ recursion = wasm do
     call #f
 
 -- This programs traps with an out-of-bounds memory access.
-outOfBounds :: Module
-outOfBounds = wasm do
+outOfBounds :: Mod '[Fn "main" '[] '[]]
+outOfBounds = do
   fn #main do
     const 10
     const ()
@@ -78,8 +78,8 @@ outOfBounds = wasm do
       print
 
 -- This program traps with a division by zero.
-divByZero :: Module
-divByZero = wasm do
+divByZero :: Mod '[Fn "main" '[] '[]]
+divByZero = do
   fn #main do
     const @Int 1
     const 0
@@ -87,9 +87,9 @@ divByZero = wasm do
     print
 
 -- Allocate a segment to store the first n fibonacci numbers, and print it.
-fibonacci :: Module
-fibonacci = wasm do
-  global.var #n 10
+fibonacci :: Mod '[Var "n" Int, Fn "main" '[] '[]]
+fibonacci = do
+  let_global #n 10
 
   fn #main do
     local.get #n
@@ -134,9 +134,9 @@ fibonacci = wasm do
             seg.print #fibs
 
 -- Calculate and print the factorial of n, using a recursive implementation.
-factorial :: Int -> Module
-factorial n = wasm do
-  global.var #n n
+factorial :: Int -> Mod '[Var "n" Int, Fn "factorial" '[Int] '[Int], Fn "main" '[] '[]]
+factorial n = do
+  let_global #n n
 
   fn @'[Int] #factorial do
     dup
@@ -158,9 +158,9 @@ factorial n = wasm do
     print
 
 -- Squares all the elements in the host-provided memory segment.
-squareAll :: IORef (Vector Int) -> Module
-squareAll r = wasm do
-  global.seg_ref #s r
+squareAll :: Vector Int -> Mod '[Seg "s" Int, Fn "main" '[] '[]]
+squareAll v = do
+  let_global_seg #s v
 
   fn #main do
     seg.size #s
@@ -187,3 +187,37 @@ squareAll r = wasm do
           else do
             nop
     seg.print #s
+
+mutualRecursion :: Mod '[Fn "f" '[Int] '[], Fn "g" '[Int] '[], Var "x" Int, Fn "main" '[] '[]]
+mutualRecursion = do
+  fn @'[Int] @'[] #f do
+    dup
+    const 0
+    eq
+    if #_ then
+      drop
+    else do
+      dup
+      print
+      const 1
+      sub
+      call #g
+
+  fn @'[Int] @'[] #g do
+    dup
+    const 0
+    eq
+    if #_ then
+      drop
+    else do
+      dup
+      print
+      const 1
+      sub
+      call #f
+
+  fn @'[] @'[] #main do
+    local.get #x
+    call #g
+
+  let_global @Int #x 7

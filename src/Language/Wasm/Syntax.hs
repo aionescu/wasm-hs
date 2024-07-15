@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC -Wno-orphans #-} -- The IsLabel instance is technically orphan, due to the '~' trick
 module Language.Wasm.Syntax where
 
-import Data.IORef(IORef)
 import Data.Vector(Vector)
 import GHC.TypeLits(KnownSymbol, SSymbol, symbolSing)
 import GHC.OverloadedLabels(IsLabel(..))
@@ -40,22 +39,29 @@ let_seg _ = LetSeg
 call :: forall i o b i' o' f. (Fn f i o, Append i b i', Append o b o') => SSymbol f -> Instr i' o'
 call _ = Call @f
 
-fn :: forall i o f c. SSymbol f -> ((Return o, Fn f i o, c) => Instr i o) -> Mod c (Fn f i o, c)
-fn _ = Fn
+fn :: forall i o f cs. (All cs => Fn f i o) => SSymbol f -> ((Return o, All cs) => Instr i o) -> Mod cs
+fn _ = Fn @f
+
+let_global :: forall a v cs. (All cs => Var v a) => SSymbol v -> a -> Mod cs
+let_global _ = LetGlobal @v
+
+let_global_seg :: forall a s cs. (All cs => Seg s a) => SSymbol s -> Vector a -> Mod cs
+let_global_seg _ = LetGlobalSeg @s
 
 -- RebindableSyntax
 
-class MonadLike m where
-  (>>) :: m a b -> m b c -> m a c
+-- Typeclass for heterogenous overloading of the '(>>)' operator.
+class HSeq a b c | a b -> c, a c -> b, b c -> a where
+  (>>) :: a -> b -> c
 
 infixr 5 >>
 
-instance MonadLike Instr where
-  (>>) :: Instr i o -> Instr o o' -> Instr i o'
+instance (o ~ i', i ~ i'', o' ~ o'') => HSeq (Instr i o) (Instr i' o') (Instr i'' o'') where
+  (>>) :: Instr i o -> Instr i' o' -> Instr i'' o''
   (>>) = Seq
 
-instance MonadLike Mod where
-  (>>) :: Mod c c' -> Mod c' c'' -> Mod c c''
+instance (cs ~ cs', cs ~ cs'') => HSeq (Mod cs) (Mod cs') (Mod cs'') where
+  (>>) :: Mod cs -> Mod cs' -> Mod cs''
   (>>) = MSeq
 
 ifThenElse :: SSymbol s -> (Label s o => Instr i o) -> (Label s o => Instr i o) -> Instr (Bool : i) o
@@ -104,17 +110,6 @@ data Seg' s a i o =
 -- If you need to use seg.* instructions with a type that doesn't have a Show instance, you can use the Seg* constructors directly.
 seg :: forall a s i o. (Seg s a, Show a) => Seg' s a i o
 seg = Seg (\_ -> SegLoad @s) (\_ -> SegStore @s) (\_ -> SegSize @s) (\_ -> SegGrow @s) (\_ -> SegPrint @s)
-
-data Global s a c =
-  Global
-  { var :: SSymbol s -> a -> Mod c (Var s a, c)
-  , var_ref :: SSymbol s -> IORef a -> Mod c (Var s a, c)
-  , seg :: SSymbol s -> Vector a -> Mod c (Seg s a, c)
-  , seg_ref :: SSymbol s -> IORef (Vector a) -> Mod c (Seg s a, c)
-  }
-
-global :: forall a s c. Global s a c
-global = Global (\_ -> GlobalVar @s) (\_ -> GlobalVarRef @s) (\_ -> GlobalSeg @s) (\_ -> GlobalSegRef @s)
 
 -- Lowercase aliases
 
@@ -180,6 +175,3 @@ not = Not
 
 ret :: forall i b i' o. (Return i, Append i b i') => Instr i' o
 ret = Ret @i
-
-wasm :: forall c. (c => Fn "main" '[] '[]) => Mod () c -> Module
-wasm = Module

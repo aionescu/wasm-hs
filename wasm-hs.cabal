@@ -20,12 +20,14 @@ common ghc-flags
     FunctionalDependencies
     GADTs
     ImpredicativeTypes
+    LambdaCase
     NoFieldSelectors
     OverloadedLabels
     OverloadedRecordDot
     QuantifiedConstraints
     RebindableSyntax
     TypeAbstractions
+    TypeFamilies
     UndecidableInstances
     UnliftedDatatypes
 

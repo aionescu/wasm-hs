@@ -12,7 +12,7 @@ import Prelude
 import Data.HList
 
 -- An instance of 'Var v a' means that variable 'v' is in scope
--- and has type 'a'
+-- and has type 'a'.
 class Var v a | v -> a where
   varRef :: IORef a
 
@@ -20,7 +20,7 @@ instance Unsatisfiable (Text "Can't define explicit 'Var' instances") => Var v a
   varRef = undefined
 
 -- An instance of 'Label l i' means that label 'l' is in scope
--- and has input stack 'i'
+-- and has input stack 'i'.
 class Label l i | l -> i where
   labelCont :: Cont i
 
@@ -28,7 +28,7 @@ instance Unsatisfiable (Text "Can't define explicit 'Label' instances") => Label
   labelCont = undefined
 
 -- An instance of 'Seg s a' means that segment 's' is in scope
--- and stores elements of type 'a'
+-- and stores elements of type 'a'.
 class Seg s a | s -> a where
   segRef :: IORef (Vector a)
 
@@ -36,22 +36,22 @@ instance Unsatisfiable (Text "Can't define explicit 'Seq' instances") => Seg s a
   segRef = undefined
 
 -- An instance of 'Return o' means that the current function
--- has output stack 'o'
+-- has output stack 'o'.
 class Return o where
   returnCont :: Cont o
 
 instance Unsatisfiable (Text "Can't define explicit 'Return' instances") => Return o where
   returnCont = undefined
 
+newtype FnCont f i o = FnCont (Return o => Cont o -> Cont i)
+
 -- An instance of 'Fn f i o' means that function 'f' is in scope
--- with input stack 'i' and output stack 'o'
+-- with input stack 'i' and output stack 'o'.
 class Fn f i o | f -> i o where
-  -- Note the 'Fn f i o' constraint on the function's continuation.
-  -- This enables self-recursion.
-  fnCont :: (Return o, Fn f i o) => Cont o -> Cont i
+  fnContRef :: IORef (FnCont f i o)
 
 instance Unsatisfiable (Text "Can't define explicit 'Fn' instances") => Fn f i o where
-  fnCont = undefined
+  fnContRef = undefined
 
 -- An instance of 'Append a b c' witnesses the fact that (a ++ b) == c.
 -- The class methods enable splitting and merging data stacks,
@@ -172,7 +172,7 @@ eval e k =
 
     Print -> \(a :> i) -> print a *> k i
 
-    Neg -> \(a :> i) -> k (-a :> i)
+    Neg -> \(a :> i) -> k ((-a) :> i)
     Add -> \(b :> a :> i) -> k (a + b :> i)
     Sub -> \(b :> a :> i) -> k (a - b :> i)
     Mul -> \(b :> a :> i) -> k (a * b :> i)
@@ -219,8 +219,11 @@ eval e k =
     SegPrint @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
 
     Call @f -> \i -> unappend i \i b ->
-      let kf o = k (append o b)
-      in withDict @(Return _) kf $ fnCont @f kf i
+      let
+        kf o = k (append o b)
+        fnRef = fnContRef @f
+      in
+        readIORef fnRef >>= \(FnCont fnCont) -> withDict @(Return _) kf $ fnCont kf i
 
     Ret @i -> \i -> unappend i \i _ -> returnCont @i i
   where

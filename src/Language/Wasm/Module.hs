@@ -1,52 +1,65 @@
 module Language.Wasm.Module where
 
-import Data.IORef(IORef, newIORef)
+import Data.IORef(IORef, newIORef, writeIORef)
 import Data.Kind(Constraint)
 import Data.Vector(Vector)
-import GHC.Exts(withDict)
+import GHC.Exts(withDict, WithDict)
 import Prelude
 
 import Language.Wasm.Instr
 
+type family All (cs :: [Constraint]) :: Constraint where
+  All '[] = ()
+  All (c ': cs) = (c, All cs)
+
+class Initializable cs where
+  initialize :: (All cs => IO r) -> IO r
+
+instance Initializable '[] where
+  initialize :: (All '[] => IO r) -> IO r
+  initialize k = k
+
+instance (WithDict c (IORef a), Initializable cs) => Initializable (c ': cs) where
+  initialize :: (All (c : cs) => IO r) -> IO r
+  initialize k = do
+    r <- newIORef @a $ error "Uninitialized Constraint dict"
+    withDict @c r $ initialize @cs k
+
 -- A 'Mod'ule encapsulates a series of Wasm definitions (global variables, segments, and functions).
--- The 'before' constraint represents definitions that are already in scope,
--- and the 'after' constraint represents the definitions that are added by the module.
-data Mod (before :: Constraint) (after :: Constraint) where
-  MSeq :: Mod c c' -> Mod c' c'' -> Mod c c''
+-- The 'cs' constraint list represents the definitions contained in the module.
+data Mod (cs :: [Constraint]) where
+  MSeq :: Mod cs -> Mod cs -> Mod cs
 
-  GlobalVar :: forall v a c. a -> Mod c (Var v a, c)
-  GlobalVarRef :: forall v a c. IORef a -> Mod c (Var v a, c)
-  -- The 'Ref' constructors are used to initialize global variables with host-shared references.
+  LetGlobal :: forall v a cs. (All cs => Var v a) => a -> Mod cs
+  LetGlobalSeg :: forall s a cs. (All cs => Seg s a) => Vector a -> Mod cs
 
-  GlobalSeg :: forall s a c. Vector a -> Mod c (Seg s a, c)
-  GlobalSegRef :: forall s a c. IORef (Vector a) -> Mod c (Seg s a, c)
+  Fn :: forall f i o cs. (All cs => Fn f i o) => ((Return o, All cs) => Instr i o) -> Mod cs
 
-  Fn :: forall f i o c. ((Return o, Fn f i o, c) => Instr i o) -> Mod c (Fn f i o, c)
+initMod :: All cs => Mod cs -> IO ()
+initMod = \case
+  MSeq a b -> initMod a *> initMod b
+  LetGlobal @v a -> writeIORef (varRef @v) a
+  LetGlobalSeg @s v -> writeIORef (segRef @s) v
+  Fn @f @i @o e -> writeIORef (fnContRef @f) (FnCont $ eval e)
 
--- Conceptually, evalMod takes a constraint as input, and produces an updated
--- constraint as output (plus IO, for allocating variables and executing instructions):
---     evalMod :: Mod c c' -> c -> IO c'
---
--- But since constraints aren't first-class values in Haskell, a CPS conversion is
--- needed (using '=>' instead of '->'):
---     evalMod :: Mod c c' -> (c' => IO ()) -> (c => IO ())
---
--- Finally, the "input" constraint is floated to the left of the signature:
---     evalMod :: c => Mod c c' -> (c' => IO ()) -> IO ()
-evalMod :: c => Mod c c' -> (c' => IO ()) -> IO ()
-evalMod m k =
-  case m of
-    MSeq a b -> evalMod a $ evalMod b k
+-- 'runWasmWith' executes the 'main' function of a module, then runs the user-provided continuation 'k',
+-- which has access to all the definitions of the module. This can be used to e.g. read the values of global
+-- variables after the module's execution.
+runWasmWith :: forall r cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Mod cs -> (All cs => IO r) -> IO r
+runWasmWith m k = initialize @cs do
+  initMod m
+  evalInstr $ Call @"main" @'[] @'[]
+  k
 
-    GlobalVar @v a -> newIORef a >>= \r -> withDict @(Var v _) r k
-    GlobalVarRef @v r -> withDict @(Var v _) r k
+-- If you don't need to read its global variables after a module's execution, you can wrap it into a 'SomeMod'
+-- to hide the (often quite long) 'cs', then use 'runWasm' to execute it for side-effects.
+data SomeMod = forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => SomeMod (Mod cs)
 
-    GlobalSeg @s v -> newIORef v >>= \r -> withDict @(Seg s _) r k
-    GlobalSegRef @s r -> withDict @(Seg s _) r k
+withSomeMod :: SomeMod -> (forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Mod cs -> r) -> r
+withSomeMod (SomeMod m) k = k m
 
-    Fn @f @i @o e -> withDict @(Fn f _ _) @((Return o, Fn f i o) => _) (eval e) k
+someMod :: forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Mod cs -> SomeMod
+someMod = SomeMod
 
-data Module = forall c. (c => Fn "main" '[] '[]) => Module { mod :: Mod () c }
-
-runWasm :: Module -> IO ()
-runWasm (Module m) = evalMod m $ evalInstr $ Call @"main" @'[] @'[]
+runWasm :: SomeMod -> IO ()
+runWasm (SomeMod m) = runWasmWith m $ pure ()
