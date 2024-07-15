@@ -48,10 +48,10 @@ newtype FnCont f i o = FnCont (Return o => Cont o -> Cont i)
 -- An instance of 'Fn f i o' means that function 'f' is in scope
 -- with input stack 'i' and output stack 'o'.
 class Fn f i o | f -> i o where
-  fnContRef :: IORef (FnCont f i o)
+  fnRef :: IORef (FnCont f i o)
 
 instance Unsatisfiable (Text "Can't define explicit 'Fn' instances") => Fn f i o where
-  fnContRef = undefined
+  fnRef = undefined
 
 -- An instance of 'Append a b c' witnesses the fact that (a ++ b) == c.
 -- The class methods enable splitting and merging data stacks,
@@ -219,11 +219,8 @@ eval e k =
     SegPrint @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
 
     Call @f -> \i -> unappend i \i b ->
-      let
-        kf o = k (append o b)
-        fnRef = fnContRef @f
-      in
-        readIORef fnRef >>= \(FnCont fnCont) -> withDict @(Return _) kf $ fnCont kf i
+      let kf o = k (append o b)
+      in readIORef (fnRef @f) >>= \(FnCont fnCont) -> withDict @(Return _) kf $ fnCont kf i
 
     Ret @i -> \i -> unappend i \i _ -> returnCont @i i
   where

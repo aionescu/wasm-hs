@@ -10,7 +10,7 @@ import Language.Wasm.Instr
 
 type family All (cs :: [Constraint]) :: Constraint where
   All '[] = ()
-  All (c ': cs) = (c, All cs)
+  All (c : cs) = (c, All cs)
 
 class Initializable cs where
   initialize :: (All cs => IO r) -> IO r
@@ -19,7 +19,7 @@ instance Initializable '[] where
   initialize :: (All '[] => IO r) -> IO r
   initialize k = k
 
-instance (WithDict c (IORef a), Initializable cs) => Initializable (c ': cs) where
+instance (WithDict c (IORef a), Initializable cs) => Initializable (c : cs) where
   initialize :: (All (c : cs) => IO r) -> IO r
   initialize k = do
     r <- newIORef @a $ error "Uninitialized Constraint dict"
@@ -40,16 +40,17 @@ initMod = \case
   MSeq a b -> initMod a *> initMod b
   LetGlobal @v a -> writeIORef (varRef @v) a
   LetGlobalSeg @s v -> writeIORef (segRef @s) v
-  Fn @f @i @o e -> writeIORef (fnContRef @f) (FnCont $ eval e)
+  Fn @f e -> writeIORef (fnRef @f) $ FnCont $ eval e
 
 -- 'runWasmWith' executes the 'main' function of a module, then runs the user-provided continuation 'k',
 -- which has access to all the definitions of the module. This can be used to e.g. read the values of global
 -- variables after the module's execution.
 runWasmWith :: forall r cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Mod cs -> (All cs => IO r) -> IO r
-runWasmWith m k = initialize @cs do
-  initMod m
-  evalInstr $ Call @"main" @'[] @'[]
-  k
+runWasmWith m k =
+  initialize @cs do
+    initMod m
+    evalInstr $ Call @"main" @'[] @'[]
+    k
 
 -- If you don't need to read its global variables after a module's execution, you can wrap it into a 'SomeMod'
 -- to hide the (often quite long) 'cs', then use 'runWasm' to execute it for side-effects.

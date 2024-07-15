@@ -24,17 +24,17 @@ functions :: Mod '[Var "g" Int, Fn "add_to_g" '[Int] '[], Fn "add_to_g_twice" '[
 functions = do
   let_global #g 2
 
-  fn @'[Int] #add_to_g do
+  fn #add_to_g do
     local.get #g
     add
     local.set #g
 
-  fn @'[Int] #add_to_g_twice do
+  fn #add_to_g_twice do
     dup
     call #add_to_g
     call #add_to_g
 
-  fn @'[] #print_g do
+  fn #print_g do
     local.get #g
     print
 
@@ -48,7 +48,7 @@ functions = do
 -- itself with a smaller and smaller argument, until it reaches 0.
 recursion :: Mod '[Fn "f" '[Int] '[], Fn "main" '[] '[]]
 recursion = do
-  fn @'[Int] #f do
+  fn #f do
     dup
     const 0
 
@@ -137,7 +137,7 @@ factorial :: Int -> Mod '[Var "n" Int, Fn "factorial" '[Int] '[Int], Fn "main" '
 factorial n = do
   let_global #n n
 
-  fn @'[Int] #factorial do
+  fn #factorial do
     dup
     const 1
 
@@ -163,6 +163,7 @@ squareAll v = do
 
   fn #main do
     seg.size #s
+
     let' #n do
       const 0
       let' #i do
@@ -185,11 +186,12 @@ squareAll v = do
             br #l
           else do
             nop
+
     seg.print #s
 
 mutualRecursion :: Mod '[Fn "f" '[Int] '[], Fn "g" '[Int] '[], Var "x" Int, Fn "main" '[] '[]]
 mutualRecursion = do
-  fn @'[Int] @'[] #f do
+  fn #f do
     dup
     const 0
 
@@ -202,7 +204,7 @@ mutualRecursion = do
       sub
       call #g
 
-  fn @'[Int] @'[] #g do
+  fn #g do
     dup
     const 0
 
@@ -215,8 +217,8 @@ mutualRecursion = do
       sub
       call #f
 
-  fn @'[] @'[] #main do
+  fn #main do
     local.get #x
     call #g
 
-  let_global @Int #x 7
+  let_global #x 7
