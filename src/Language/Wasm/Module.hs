@@ -54,29 +54,21 @@ initMod = \case
 
 type Module cs = Mod cs cs '[]
 
--- 'runModuleWith' executes the 'main' function of a module, then runs the user-provided continuation 'k',
--- which has access to all the definitions of the module. This can be used to e.g. read the values of global
--- variables after the module's execution.
---
 -- To execute a module, first initialize dummy IORefs for each definition (handled by 'initialize' and the 'Initializable'
--- typeclass), then fill all the IORefs with the values of the definitions ('initMod'), and finally call 'main',
--- then run the user-provided continuation (which has access to all the IORefs via 'cs').
-runModuleWith :: forall r cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> (All cs => IO r) -> IO r
-runModuleWith m k =
+-- typeclass), then fill all the IORefs with the values of the definitions ('initMod'), and finally call 'main'.
+runModule :: forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> IO ()
+runModule m =
   initialize @cs do
     initMod m
     evalInstr $ Call @"main" @'[] @'[]
-    k
 
--- If you don't need to read its global variables after a module's execution, you can wrap it into a 'SomeModule'
--- to hide the (often quite long) 'cs', then use 'runModule' to execute it for side-effects.
-data SomeModule = forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => SomeModule (Module cs)
+-- In most cases, you want to wrap your modules into 'WasmModule's (using the 'wasm' function defined below), to
+-- hide the very long 'cs' list. You can use 'host_global' and 'host_global_seg' to initialize global variables
+-- or segments with pre-existing 'IORef's.
+data WasmModule = forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => WasmModule (Module cs)
 
-withSomeModule :: SomeModule -> (forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> r) -> r
-withSomeModule (SomeModule m) k = k m
+wasm :: forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> WasmModule
+wasm = WasmModule
 
-someModule :: forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> SomeModule
-someModule = SomeModule
-
-runModule :: SomeModule -> IO ()
-runModule (SomeModule m) = runModuleWith m $ pure ()
+runWasm :: WasmModule -> IO ()
+runWasm (WasmModule m) = runModule m

@@ -1,6 +1,7 @@
 module Main where
 
 import Data.Foldable(for_)
+import Data.IORef(newIORef)
 import GHC.IsList(IsList(..))
 import Prelude
 import System.Environment(getArgs)
@@ -11,18 +12,19 @@ import Language.Wasm.Examples
 main :: IO ()
 main = do
   args <- getArgs
+  r <- newIORef [1 .. 10]
 
   let
     examples =
-      [ ("countTo10", someModule countTo10)
-      , ("functions", someModule functions)
-      , ("recursion", someModule recursion)
-      , ("outOfBOunds", someModule outOfBounds)
-      , ("divByZero", someModule divByZero)
-      , ("fibonacci", someModule fibonacci)
-      , ("factorial", someModule $ factorial 10)
-      , ("squareAll", someModule $ squareAll [1 .. 10])
-      , ("mutualRecursion", someModule mutualRecursion)
+      [ ("countTo10", countTo10)
+      , ("functions", functions)
+      , ("recursion", recursion)
+      , ("outOfBOunds", outOfBounds)
+      , ("divByZero", divByZero)
+      , ("fibonacci", fibonacci)
+      , ("factorial", factorial 10)
+      , ("mutualRecursion", mutualRecursion)
+      , ("squareAll", squareAll r)
       ]
 
     selected =
@@ -35,5 +37,5 @@ main = do
       Nothing -> putStrLn $ "Unknown example: " <> name <> "\n"
       Just mod -> do
         putStrLn $ name <> ": "
-        runModule mod
+        runWasm mod
         putStrLn ""

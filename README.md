@@ -11,9 +11,9 @@ This project provides an embedded domain-specific language (eDSL) for encoding W
 Below is a simple example of the DSL, a Wasm program that computes the factorial of 5:
 
 ```haskell
-factorial :: Module '[Fn "factorial" '[Int] '[Int], Fn "main" '[] '[]]
-factorial = do
-  fn #factorial do
+factorial :: WasmModule
+factorial = wasm do
+  fn @'[Int] #factorial do
     dup
     const 1
 
@@ -57,6 +57,8 @@ To provide better ergonomics as a Haskell DSL, the project deviates from the Web
 
 The project also includes an interpreter that uses continuation-passing style for efficient jumps, and local instances (via [`WithDict`](https://hackage.haskell.org/package/base/docs/GHC-Exts.html#t:WithDict)) for constant-time variable lookup.
 
+Global variables and segments can be initialised with host-provided mutable references (`IORef`s), which allows the host to pass inputs to the Wasm module, and inspect its outputs and side-effects.
+
 ## Limitations
 
 * The DSL only allows the construction of self-contained Wasm modules (i.e. no external imports or exports).
@@ -95,6 +97,12 @@ If you want to run only specific examples, pass their names as arguments:
 
 ```sh
 cabal run . -- factorial fibonacci
+```
+
+If you specify an example multiple times, it will be executed that many times. This can be used to observe side-effects such as mutating memory shared by the host:
+
+```sh
+cabal run . -- squareAll squareAll
 ```
 
 ## Running the tests

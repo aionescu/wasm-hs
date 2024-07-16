@@ -3,8 +3,8 @@ module Language.Wasm.Examples where
 import Language.Wasm.Prelude
 
 -- Print the numbers from 1 to 10
-countTo10 :: Module '[Fn "main" '[] '[]]
-countTo10 = do
+countTo10 :: WasmModule
+countTo10 = wasm do
   fn #main do
     const @Int 0
     let' #i do
@@ -20,21 +20,21 @@ countTo10 = do
         br_if #next
 
 -- Small example illustrating functions and globals.
-functions :: Module '[Var "g" Int, Fn "add_to_g" '[Int] '[], Fn "add_to_g_twice" '[Int] '[], Fn "print_g" '[] '[], Fn "main" '[] '[]]
-functions = do
+functions :: WasmModule
+functions = wasm do
   global #g 2
 
-  fn #add_to_g do
+  fn @'[Int] #add_to_g do
     local.get #g
     add
     local.set #g
 
-  fn #add_to_g_twice do
+  fn @'[Int] #add_to_g_twice do
     dup
     call #add_to_g
     call #add_to_g
 
-  fn #print_g do
+  fn @'[] #print_g do
     local.get #g
     print
 
@@ -46,9 +46,9 @@ functions = do
 -- Small example to illustrate recursive functions.
 -- Function #f just prints its argument and keeps calling
 -- itself with a smaller and smaller argument, until it reaches 0.
-recursion :: Module '[Fn "f" '[Int] '[], Fn "main" '[] '[]]
-recursion = do
-  fn #f do
+recursion :: WasmModule
+recursion = wasm do
+  fn @'[Int] #f do
     dup
     const 0
 
@@ -66,8 +66,8 @@ recursion = do
     call #f
 
 -- This programs traps with an out-of-bounds memory access.
-outOfBounds :: Module '[Fn "main" '[] '[]]
-outOfBounds = do
+outOfBounds :: WasmModule
+outOfBounds = wasm do
   fn #main do
     const 10
     const ()
@@ -77,8 +77,8 @@ outOfBounds = do
       print
 
 -- This program traps with a division by zero.
-divByZero :: Module '[Fn "main" '[] '[]]
-divByZero = do
+divByZero :: WasmModule
+divByZero = wasm do
   fn #main do
     const @Int 1
     const 0
@@ -86,8 +86,8 @@ divByZero = do
     print
 
 -- Allocate a segment to store the first n fibonacci numbers, and print it.
-fibonacci :: Module '[Var "n" Int, Fn "main" '[] '[]]
-fibonacci = do
+fibonacci :: WasmModule
+fibonacci = wasm do
   global #n 10
 
   fn #main do
@@ -133,11 +133,11 @@ fibonacci = do
             seg.print #fibs
 
 -- Calculate and print the factorial of n, using a recursive implementation.
-factorial :: Int -> Module '[Var "n" Int, Fn "factorial" '[Int] '[Int], Fn "main" '[] '[]]
-factorial n = do
+factorial :: Int -> WasmModule
+factorial n = wasm do
   global #n n
 
-  fn #factorial do
+  fn @'[Int] #factorial do
     dup
     const 1
 
@@ -156,42 +156,9 @@ factorial n = do
     call #factorial
     print
 
--- Squares all the elements in the host-provided memory segment.
-squareAll :: Vector Int -> Module '[Seg "s" Int, Fn "main" '[] '[]]
-squareAll v = do
-  global_seg #s v
-
-  fn #main do
-    seg.size #s
-
-    let' #n do
-      const 0
-      let' #i do
-        loop #l do
-          local.get #i
-          local.get #n
-
-          if lt then do
-            local.get #i
-            dup
-            seg.load #s
-            dup
-            mul
-            seg.store #s
-
-            local.get #i
-            const 1
-            add
-            local.set #i
-            br #l
-          else do
-            nop
-
-    seg.print #s
-
-mutualRecursion :: Module '[Fn "f" '[Int] '[], Fn "g" '[Int] '[], Fn "main" '[] '[], Var "x" Int]
-mutualRecursion = do
-  fn #f do
+mutualRecursion :: WasmModule
+mutualRecursion = wasm do
+  fn @'[Int] #f do
     dup
     const 0
 
@@ -204,7 +171,7 @@ mutualRecursion = do
       sub
       call #g
 
-  fn #g do
+  fn @'[Int] #g do
     dup
     const 0
 
@@ -222,3 +189,35 @@ mutualRecursion = do
     call #g
 
   global #x 7
+
+-- Squares all the elements in the host-provided memory segment.
+squareAll :: IORef (Vector Int) -> WasmModule
+squareAll r = wasm do
+  host_global_seg #s r do
+    fn #main do
+      seg.size #s
+
+      let' #n do
+        const 0
+        let' #i do
+          loop #l do
+            local.get #i
+            local.get #n
+
+            if lt then do
+              local.get #i
+              dup
+              seg.load #s
+              dup
+              mul
+              seg.store #s
+
+              local.get #i
+              const 1
+              add
+              local.set #i
+              br #l
+            else do
+              nop
+
+      seg.print #s

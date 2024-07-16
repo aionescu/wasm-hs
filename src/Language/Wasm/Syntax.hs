@@ -2,7 +2,9 @@
 {-# OPTIONS_GHC -Wno-orphans #-} -- The IsLabel instance is technically orphan, due to the '~' trick
 module Language.Wasm.Syntax where
 
+import Data.IORef(IORef)
 import Data.Vector(Vector)
+import GHC.Exts(WithDict(..))
 import GHC.TypeLits(KnownSymbol(..), SSymbol)
 import GHC.OverloadedLabels(IsLabel(..))
 import Prelude hiding ((>>), const, not, div, mod, print)
@@ -47,6 +49,12 @@ global_seg _ = GlobalSeg @s
 
 fn :: forall i o f cs is. (All cs => Fn f i o) => SSymbol f -> ((Return o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
 fn _ = Fn @f
+
+host_global :: forall a v r. SSymbol v -> IORef a -> (Var v a => r) -> r
+host_global _ r k = withDict @(Var v _) r k
+
+host_global_seg :: forall a s r. SSymbol s -> IORef (Vector a) -> (Seg s a => r) -> r
+host_global_seg _ r k = withDict @(Seg s _) r k
 
 -- RebindableSyntax
 
