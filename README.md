@@ -49,11 +49,10 @@ To provide better ergonomics as a Haskell DSL, the project deviates from the Web
 * Additional instructions are supported (`dup`, `swap`) that are not present in Wasm.
 * Arithmetic and comparison instructions are overloaded using the standard Haskell typeclasses (`Num`, `Ord` etc.).
 * Boolean instructions (comparisons, `br_if` etc.) use Haskell's native `Bool` type, rather than encoding booleans as `0` or `1` of type `i32`.
-* Variables use alphanumeric names (rather than numeric indices), and are scoped explicitly (using a `let'` instruction), rather than being function-scoped.
-* Similarly, block labels are also named, and are introduced by the block instructions (`block`, `loop`, `if`).
-* Rather than using a single untyped linear memory, `wasm-hs` uses multiple _typed memories_. Memories are scoped similarly to local variables, and are allocated with the `let_mem` instruction.
+* Local variables are scoped explicitly (using a `let'` instruction), instead of being function-scoped.
+* Memories are typed, and are scoped similarly to local variables (allocated with the `let_mem` instruction).
 
-## Interpretation
+## Interpreter
 
 The project also includes an interpreter that uses continuation-passing style for efficient jumps, and local instances (via [`WithDict`](https://hackage.haskell.org/package/base/docs/GHC-Exts.html#t:WithDict)) for constant-time variable lookup.
 
@@ -62,9 +61,9 @@ Global variables and memories can be initialised with host-provided mutable refe
 ## Limitations
 
 * The DSL only allows the construction of self-contained Wasm modules (i.e. no external imports or exports).
-* Indirect calls, `br_table`, and SIMD instructions are not supported.
+* `call_indirect` and `br_table` are not supported.
 
-## Project Structure
+## Project structure
 
 The main modules of the library are [`Language.Wasm.Instr`](src/Language/Wasm/Instr.hs), which defines the core `Instr` AST datatype and evaluation functions; and [`Language.Wasm.Module`](src/Language/Wasm/Module.hs), which builds upon `Instr` and defines a datatype for bundling definitions into modules, as well as module evaluation functions.
 

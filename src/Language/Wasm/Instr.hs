@@ -85,7 +85,7 @@ instance Append a b c => Append (x : a) b (x : c) where
 
 type Stack = [Type]
 
--- An 'Instr i o' is a Wasm instruction that takes an input stack 'i'
+-- An 'Instr i o' is a Wasm instruction that accepts an input stack 'i'
 -- and produces an output stack 'o'.
 data Instr (i :: Stack) (o :: Stack) where
   Nop :: Instr i i
@@ -99,26 +99,10 @@ data Instr (i :: Stack) (o :: Stack) where
 
   Print :: Show a => Instr (a : i) i
 
-  Neg :: Num a => Instr (a : i) (a : i)
-  Add :: Num a => Instr (a : a : i) (a : i)
-  Sub :: Num a => Instr (a : a : i) (a : i)
-  Mul :: Num a => Instr (a : a : i) (a : i)
-
-  IDiv :: Integral a => Instr (a : a : i) (a : i)
-  IRem :: Integral a => Instr (a : a : i) (a : i)
-
-  FDiv :: (Eq a, Fractional a) => Instr (a : a : i) (a : i)
-
-  Eq :: Eq a => Instr (a : a : i) (Bool : i)
-  Neq :: Eq a => Instr (a : a : i) (Bool : i)
-  Lt :: Ord a => Instr (a : a : i) (Bool : i)
-  Lte :: Ord a => Instr (a : a : i) (Bool : i)
-  Gt :: Ord a => Instr (a : a : i) (Bool : i)
-  Gte :: Ord a => Instr (a : a : i) (Bool : i)
-
-  And :: Instr (Bool : Bool : i) (Bool : i)
-  Or :: Instr (Bool : Bool : i) (Bool : i)
-  Not :: Instr (Bool : i) (Bool : i)
+  -- Lift a unary or binary function into an instruction.
+  -- If the lifted function returns 'Left err', execution traps with message 'err'.
+  UnaryOp :: (a -> Either String b) -> Instr (a : i) (b : i)
+  BinaryOp :: (a -> b -> Either String c) -> Instr (b : a : i) (c : i)
 
   Block :: (Label s o => Instr i o) -> Instr i o
   Loop :: (Label s i => Instr i o) -> Instr i o
@@ -140,7 +124,7 @@ data Instr (i :: Stack) (o :: Stack) where
   MemSize :: Mem s a => Instr i (Int : i)
   MemGrow :: Mem s a => Instr (a : Int : i) i
 
-  -- Convenience instruction to print a memory's contents
+  -- Convenience instruction to print a memory's contents.
   MemPrint :: (Mem s a, Show a) => Instr i i
 
   Call :: (Fn s i o, Append i b i', Append o b o') => Instr i' o'
@@ -178,30 +162,12 @@ eval e k =
 
     Print -> \(a :> i) -> print a *> k i
 
-    Neg -> \(a :> i) -> k ((-a) :> i)
-    Add -> \(b :> a :> i) -> k (a + b :> i)
-    Sub -> \(b :> a :> i) -> k (a - b :> i)
-    Mul -> \(b :> a :> i) -> k (a * b :> i)
-
-    IDiv -> \(b :> a :> i) -> checkZero b $ k (a `div` b :> i)
-    IRem -> \(b :> a :> i) -> checkZero b $ k (a `mod` b :> i)
-
-    FDiv -> \(b :> a :> i) -> checkZero b $ k (a / b :> i)
-
-    Eq -> \(b :> a :> i) -> k ((a == b) :> i)
-    Neq -> \(b :> a :> i) -> k ((a /= b) :> i)
-    Lt -> \(b :> a :> i) -> k ((a < b) :> i)
-    Lte -> \(b :> a :> i) -> k ((a <= b) :> i)
-    Gt -> \(b :> a :> i) -> k ((a > b) :> i)
-    Gte -> \(b :> a :> i) -> k ((a >= b) :> i)
-
-    And -> \(b :> a :> i) -> k ((a && b) :> i)
-    Or -> \(b :> a :> i) -> k ((a || b) :> i)
-    Not -> \(a :> i) -> k (not a :> i)
+    UnaryOp f -> \(a :> i) -> trapEither k i $ f a
+    BinaryOp f -> \(b :> a :> i) -> trapEither k i $ f a b
 
     Block @s e -> withDict @(Label s _) k $ eval e k
     Loop @s e -> let kl = withDict @(Label s _) kl $ eval e k in kl
-    If e1 e2 -> \(b :> i) -> eval (bool e2 e1 b) k i
+    If t f -> \(b :> i) -> eval (bool f t b) k i
 
     Br @s -> \i -> unappend i \i _ -> labelCont @s i
     BrIf @s -> \(b :> i) -> bool k (labelCont @s) b i
@@ -225,8 +191,8 @@ eval e k =
     MemPrint @s -> \i -> readIORef (memRef @s) >>= \v -> print v *> k i
 
     Call @s -> \i -> unappend i \i b ->
-      let kf o = k (append o b)
-      in readIORef (fnRef @s) >>= \(FnCont fnCont) -> withDict @(Ret _) kf $ fnCont kf i
+      let retk o = k (append o b)
+      in readIORef (fnRef @s) >>= \(FnCont fnCont) -> withDict @(Ret _) retk $ fnCont retk i
 
     Ret @i -> \i -> unappend i \i _ -> retCont @i i
   where
@@ -235,9 +201,11 @@ eval e k =
     trap :: String -> IO ()
     trap msg = putStrLn ("Execution trapped: " <> msg)
 
-    checkZero :: (Eq a, Num a) => a -> IO () -> IO ()
-    checkZero 0 _ = trap "Division by zero"
-    checkZero _ k = k
+    -- Unwrap an 'Either' and push its contents on the stack, or trap if it's a 'Left'.
+    trapEither :: Cont (a : i) -> HList i -> Either String a -> IO ()
+    trapEither k i = \case
+      Left err -> trap err
+      Right a -> k (a :> i)
 
     checkBounds :: Vector a -> Int -> IO () -> IO ()
     checkBounds v n k

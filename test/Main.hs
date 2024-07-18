@@ -13,7 +13,9 @@ import Language.Wasm.Examples
 
 testOutput :: TestName -> WasmModule -> String -> TestTree
 testOutput modName mod expected =
-  testCase modName $ capture_ (hFlush stdout *> runWasm mod *> hFlush stdout) >>= (@?= expected)
+  testCase modName do
+    hFlush stdout
+    capture_ (runWasm mod) >>= (@?= expected)
 
 testHostSharedMemory :: Assertion
 testHostSharedMemory = do

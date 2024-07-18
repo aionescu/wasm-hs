@@ -82,7 +82,7 @@ divByZero = wasm do
   fn #main do
     const @Int 1
     const 0
-    i.div
+    div
     print
 
 -- Allocate a memory to store the first n fibonacci numbers, and print it.
