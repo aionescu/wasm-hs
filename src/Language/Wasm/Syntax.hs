@@ -58,18 +58,17 @@ host_global_seg _ r k = withDict @(Seg s _) r k
 
 -- RebindableSyntax
 
--- Typeclass for heterogenous overloading of the '(>>)' operator.
-class HSeq a b c | a b -> c, a c -> b, b c -> a where
-  (>>) :: a -> b -> c
+class MonadLike m where
+  (>>) :: m a b -> m b c -> m a c
 
 infixr 5 >>
 
-instance (o ~ i', i ~ i'', o' ~ o'') => HSeq (Instr i o) (Instr i' o') (Instr i'' o'') where
-  (>>) :: Instr i o -> Instr i' o' -> Instr i'' o''
+instance MonadLike Instr where
+  (>>) :: Instr i o -> Instr o o' -> Instr i o'
   (>>) = Seq
 
-instance (cs ~ cs', cs ~ cs'', os ~ is', is ~ is'', os' ~ os'') => HSeq (Mod cs is os) (Mod cs' is' os') (Mod cs'' is'' os'') where
-  (>>) :: Mod cs is os -> Mod cs' is' os' -> Mod cs'' is'' os''
+instance MonadLike (Mod cs) where
+  (>>) :: Mod cs is os -> Mod cs os os' -> Mod cs is os'
   (>>) = MSeq
 
 ifThenElse :: Instr i' (Bool : i) -> Instr i o -> Instr i o -> Instr i' o

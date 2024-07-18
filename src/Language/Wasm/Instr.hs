@@ -17,6 +17,7 @@ class Var v a | v -> a where
   varRef :: IORef a
 
 instance Unsatisfiable (Text "Can't define explicit 'Var' instances") => Var v a where
+  varRef :: IORef a
   varRef = undefined
 
 -- An instance of 'Label l i' means that label 'l' is in scope
@@ -25,6 +26,7 @@ class Label l i | l -> i where
   labelCont :: Cont i
 
 instance Unsatisfiable (Text "Can't define explicit 'Label' instances") => Label l i where
+  labelCont :: Cont i
   labelCont = undefined
 
 -- An instance of 'Seg s a' means that segment 's' is in scope
@@ -33,6 +35,7 @@ class Seg s a | s -> a where
   segRef :: IORef (Vector a)
 
 instance Unsatisfiable (Text "Can't define explicit 'Seq' instances") => Seg s a where
+  segRef :: IORef (Vector a)
   segRef = undefined
 
 -- An instance of 'Return o' means that the current function
@@ -41,6 +44,7 @@ class Return o where
   returnCont :: Cont o
 
 instance Unsatisfiable (Text "Can't define explicit 'Return' instances") => Return o where
+  returnCont :: Cont o
   returnCont = undefined
 
 newtype FnCont f i o = FnCont (Return o => Cont o -> Cont i)
@@ -51,6 +55,7 @@ class Fn f i o | f -> i o where
   fnRef :: IORef (FnCont f i o)
 
 instance Unsatisfiable (Text "Can't define explicit 'Fn' instances") => Fn f i o where
+  fnRef :: IORef (FnCont f i o)
   fnRef = undefined
 
 -- An instance of 'Append a b c' witnesses the fact that (a ++ b) == c.
