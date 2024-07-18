@@ -71,9 +71,9 @@ outOfBounds = wasm do
   fn #main do
     const 10
     const ()
-    let_seg #s do
+    let_mem #m do
       const 100
-      seg.load #s
+      mem.load #m
       print
 
 -- This program traps with a division by zero.
@@ -85,7 +85,7 @@ divByZero = wasm do
     i.div
     print
 
--- Allocate a segment to store the first n fibonacci numbers, and print it.
+-- Allocate a memory to store the first n fibonacci numbers, and print it.
 fibonacci :: WasmModule
 fibonacci = wasm do
   global #n 10
@@ -93,14 +93,14 @@ fibonacci = wasm do
   fn #main do
     local.get #n
     const @Int 0
-    let_seg #fibs do
+    let_mem #fibs do
       const 0
       const 1
-      seg.store #fibs
+      mem.store #fibs
 
       const 1
       const 2
-      seg.store #fibs
+      mem.store #fibs
 
       const 2
       let' #i do
@@ -112,17 +112,17 @@ fibonacci = wasm do
             local.get #i
             const 2
             sub
-            seg.load #fibs
+            mem.load #fibs
 
             local.get #i
             const 1
             sub
-            seg.load #fibs
+            mem.load #fibs
 
             add
             local.get #i
             swap
-            seg.store #fibs
+            mem.store #fibs
 
             local.get #i
             const 1
@@ -130,7 +130,7 @@ fibonacci = wasm do
             local.set #i
             br #l
           else do
-            seg.print #fibs
+            mem.print #fibs
 
 -- Calculate and print the factorial of n, using a recursive implementation.
 factorial :: Int -> WasmModule
@@ -190,12 +190,12 @@ mutualRecursion = wasm do
 
   global #x 7
 
--- Squares all the elements in the host-provided memory segment.
+-- Squares all the elements in the host-provided memory buffer.
 squareAll :: IORef (Vector Int) -> WasmModule
 squareAll r = wasm do
-  host_global_seg #s r do
+  host_mem #m r do
     fn #main do
-      seg.size #s
+      mem.size #m
 
       let' #n do
         const 0
@@ -207,10 +207,10 @@ squareAll r = wasm do
             if lt then do
               local.get #i
               dup
-              seg.load #s
+              mem.load #m
               dup
               mul
-              seg.store #s
+              mem.store #m
 
               local.get #i
               const 1
@@ -220,4 +220,4 @@ squareAll r = wasm do
             else do
               nop
 
-      seg.print #s
+      mem.print #m

@@ -32,29 +32,29 @@ br _ = Br @l
 br_if :: forall i l. Label l i => SSymbol l -> Instr (Bool : i) i
 br_if _ = BrIf @l
 
-let' :: forall a i o v. SSymbol v -> (Var v a => Instr i o) -> Instr (a : i) o
-let' _ = Let
-
-let_seg :: forall a i o s. SSymbol s -> (Seg s a => Instr i o) -> Instr (a : Int : i) o
-let_seg _ = LetSeg
-
 call :: forall i o b i' o' f. (Fn f i o, Append i b i', Append o b o') => SSymbol f -> Instr i' o'
 call _ = Call @f
 
-global :: forall a v cs is. (All cs => Var v a) => SSymbol v -> a -> Mod cs (Var v a : is) is
-global _ = Global @v
+global :: forall a s cs is. (All cs => Local s a) => SSymbol s -> a -> Mod cs (Local s a : is) is
+global _ = Global @s
 
-global_seg :: forall a s cs is. (All cs => Seg s a) => SSymbol s -> Vector a -> Mod cs (Seg s a : is) is
-global_seg _ = GlobalSeg @s
+global_mem :: forall a s cs is. (All cs => Mem s a) => SSymbol s -> Vector a -> Mod cs (Mem s a : is) is
+global_mem _ = GlobalMem @s
 
-fn :: forall i o f cs is. (All cs => Fn f i o) => SSymbol f -> ((Return o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
+fn :: forall i o f cs is. (All cs => Fn f i o) => SSymbol f -> ((Ret o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
 fn _ = Fn @f
 
-host_global :: forall a v r. SSymbol v -> IORef a -> (Var v a => r) -> r
-host_global _ r k = withDict @(Var v _) r k
+let' :: forall a i o s. SSymbol s -> (Local s a => Instr i o) -> Instr (a : i) o
+let' _ = Let @s
 
-host_global_seg :: forall a s r. SSymbol s -> IORef (Vector a) -> (Seg s a => r) -> r
-host_global_seg _ r k = withDict @(Seg s _) r k
+let_mem :: forall a i o s. SSymbol s -> (Mem s a => Instr i o) -> Instr (a : Int : i) o
+let_mem _ = LetMem @s
+
+host_global :: forall a r s. SSymbol s -> IORef a -> (Local s a => r) -> r
+host_global _ = withDict @(Local s _)
+
+host_mem :: forall a r s. SSymbol s -> IORef (Vector a) -> (Mem s a => r) -> r
+host_mem _ = withDict @(Mem s _)
 
 -- RebindableSyntax
 
@@ -93,18 +93,18 @@ data F a i =
 f :: forall a i. (Eq a, Fractional a) => F a i
 f = F { div = FDiv }
 
-data Local v a i =
+data Local' s a i =
   Local
-  { get :: SSymbol v -> Instr i (a : i)
-  , set :: SSymbol v -> Instr (a : i) i
-  , tee :: SSymbol v -> Instr (a : i) (a : i)
+  { get :: SSymbol s -> Instr i (a : i)
+  , set :: SSymbol s -> Instr (a : i) i
+  , tee :: SSymbol s -> Instr (a : i) (a : i)
   }
 
-local :: forall a v i. Var v a => Local v a i
-local = Local (\_ -> LocalGet @v) (\_ -> LocalSet @v) (\_ -> LocalTee @v)
+local :: forall a s i. Local s a => Local' s a i
+local = Local (\_ -> LocalGet @s) (\_ -> LocalSet @s) (\_ -> LocalTee @s)
 
-data Seg' s a i o =
-  Seg
+data Mem' s a i o =
+  Mem
   { load :: SSymbol s -> Instr (Int : i) (a : i)
   , store :: SSymbol s -> Instr (a : Int : i) i
   , size :: SSymbol s -> Instr i (Int : i)
@@ -112,11 +112,11 @@ data Seg' s a i o =
   , print :: SSymbol s -> Instr i i
   }
 
--- This over-constrains all the seg.* instructions to require Show, even though only seg.print needs it.
+-- This over-constrains all the mem.* instructions to require Show, even though only mem.print needs it.
 -- Unfortunately we can't move the constraints into the record fields, since GHC doesn't derive HasField instances for higher-rank fields.
--- If you need to use seg.* instructions with a type that doesn't have a Show instance, you can use the Seg* constructors directly.
-seg :: forall a s i o. (Seg s a, Show a) => Seg' s a i o
-seg = Seg (\_ -> SegLoad @s) (\_ -> SegStore @s) (\_ -> SegSize @s) (\_ -> SegGrow @s) (\_ -> SegPrint @s)
+-- If you need to use mem.* instructions with a type that doesn't have a Show instance, you can use the Mem* constructors directly.
+mem :: forall a s i o. (Mem s a, Show a) => Mem' s a i o
+mem = Mem (\_ -> MemLoad @s) (\_ -> MemStore @s) (\_ -> MemSize @s) (\_ -> MemGrow @s) (\_ -> MemPrint @s)
 
 -- Lowercase aliases
 
@@ -180,5 +180,5 @@ or = Or
 not :: Instr (Bool : i) (Bool : i)
 not = Not
 
-ret :: forall i b i' o. (Return i, Append i b i') => Instr i' o
+ret :: forall i b i' o. (Ret i, Append i b i') => Instr i' o
 ret = Ret @i

@@ -51,13 +51,13 @@ To provide better ergonomics as a Haskell DSL, the project deviates from the Web
 * Boolean instructions (comparisons, `br_if` etc.) use Haskell's native `Bool` type, rather than encoding booleans as `0` or `1` of type `i32`.
 * Variables use alphanumeric names (rather than numeric indices), and are scoped explicitly (using a `let'` instruction), rather than being function-scoped.
 * Similarly, block labels are also named, and are introduced by the block instructions (`block`, `loop`, `if`).
-* Rather than using a single untyped linear memory, the user can explicitly allocate typed _memory segments_, inspired by the [MSWasm](https://dl.acm.org/doi/10.1145/3571208) paper. Segments are scoped similarly to local variables, and are allocated with the `let_seg` instruction.
+* Rather than using a single untyped linear memory, `wasm-hs` uses multiple _typed memories_. Memories are scoped similarly to local variables, and are allocated with the `let_mem` instruction.
 
 ## Interpretation
 
 The project also includes an interpreter that uses continuation-passing style for efficient jumps, and local instances (via [`WithDict`](https://hackage.haskell.org/package/base/docs/GHC-Exts.html#t:WithDict)) for constant-time variable lookup.
 
-Global variables and segments can be initialised with host-provided mutable references (`IORef`s), which allows the host to pass inputs to the Wasm module, and inspect its outputs and side-effects.
+Global variables and memories can be initialised with host-provided mutable references (`IORef`s), which allows the host to pass input data to the Wasm module, and inspect its mutations after execution.
 
 ## Limitations
 

@@ -27,7 +27,7 @@ tests =
   [ testOutput "countTo10"       countTo10       "1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"
   , testOutput "functions"       functions       "6\n"
   , testOutput "recursion"       recursion       "10\n9\n8\n7\n6\n5\n4\n3\n2\n1\n"
-  , testOutput "outOfBounds"     outOfBounds     "Execution trapped: Segment access out of bounds\n"
+  , testOutput "outOfBounds"     outOfBounds     "Execution trapped: Memory access out of bounds\n"
   , testOutput "divByZero"       divByZero       "Execution trapped: Division by zero\n"
   , testOutput "fibonacci"       fibonacci       "[1,2,3,5,8,13,21,34,55,89]\n"
   , testOutput "factorial"       (factorial 10)  "3628800\n"

@@ -25,7 +25,7 @@ instance (WithDict c (IORef a), Initializable cs) => Initializable (c : cs) wher
     r <- newIORef @a $ error "Uninitialized Constraint dictionary"
     withDict @c r $ initialize @cs k
 
--- A 'Mod'ule encapsulates a series of Wasm definitions (global variables, segments, and functions).
+-- A 'Mod'ule encapsulates a series of Wasm definitions (global variables, memories, and functions).
 --
 -- The 'cs' constraint list represents the signatures of all the definitions contained in the entire module, to allow for
 -- definitions to refer to future definitions without forward-declaring them (they are actually forward-declared in 'cs').
@@ -40,17 +40,17 @@ instance (WithDict c (IORef a), Initializable cs) => Initializable (c : cs) wher
 data Mod (cs :: [Constraint]) (is :: [Constraint]) (os :: [Constraint]) where
   MSeq :: Mod cs is os -> Mod cs os os' -> Mod cs is os'
 
-  Global :: forall v a cs is. (All cs => Var v a) => a -> Mod cs (Var v a : is) is
-  GlobalSeg :: forall s a cs is. (All cs => Seg s a) => Vector a -> Mod cs (Seg s a : is) is
+  Global :: forall s a cs is. (All cs => Local s a) => a -> Mod cs (Local s a : is) is
+  GlobalMem :: forall s a cs is. (All cs => Mem s a) => Vector a -> Mod cs (Mem s a : is) is
 
-  Fn :: forall f i o cs is. (All cs => Fn f i o) => ((Return o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
+  Fn :: forall s i o cs is. (All cs => Fn s i o) => ((Ret o, All cs) => Instr i o) -> Mod cs (Fn s i o : is) is
 
 initMod :: All cs => Mod cs is os -> IO ()
 initMod = \case
   MSeq a b -> initMod a *> initMod b
-  Global @v a -> writeIORef (varRef @v) a
-  GlobalSeg @s v -> writeIORef (segRef @s) v
-  Fn @f e -> writeIORef (fnRef @f) $ FnCont $ eval e
+  Global @s a -> writeIORef (localRef @s) a
+  GlobalMem @s s -> writeIORef (memRef @s) s
+  Fn @s e -> writeIORef (fnRef @s) $ FnCont $ eval e
 
 type Module cs = Mod cs cs '[]
 
@@ -63,8 +63,8 @@ runModule m =
     evalInstr $ Call @"main" @'[] @'[]
 
 -- In most cases, you want to wrap your modules into 'WasmModule's (using the 'wasm' function defined below), to
--- hide the very long 'cs' list. You can use 'host_global' and 'host_global_seg' to initialize global variables
--- or segments with pre-existing 'IORef's.
+-- hide the very long 'cs' list. You can use 'host_global' and 'host_mem' to initialize global variables
+-- or memories with pre-existing 'IORef's.
 data WasmModule = forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => WasmModule (Module cs)
 
 wasm :: forall cs. (Initializable cs, All cs => Fn "main" '[] '[]) => Module cs -> WasmModule

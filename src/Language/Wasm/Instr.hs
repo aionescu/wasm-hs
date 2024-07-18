@@ -7,58 +7,59 @@ import Data.Vector(Vector)
 import Data.Vector qualified as V
 import GHC.Exts(withDict)
 import GHC.TypeError(ErrorMessage(..), Unsatisfiable)
+import GHC.TypeLits(Symbol)
 import Prelude
 
 import Data.HList
 
--- An instance of 'Var v a' means that variable 'v' is in scope
+-- An instance of 'Local s a' means that local variable 's' is in scope
 -- and has type 'a'.
-class Var v a | v -> a where
-  varRef :: IORef a
+class Local (s :: Symbol) a | s -> a where
+  localRef :: IORef a
 
-instance Unsatisfiable (Text "Can't define explicit 'Var' instances") => Var v a where
-  varRef :: IORef a
-  varRef = undefined
+instance Unsatisfiable (Text "Local variable " :<>: ShowType s :<>: Text " is not in scope.") => Local s a where
+  localRef :: IORef a
+  localRef = undefined
 
--- An instance of 'Label l i' means that label 'l' is in scope
+-- An instance of 'Label s i' means that label 's' is in scope
 -- and has input stack 'i'.
-class Label l i | l -> i where
+class Label (s :: Symbol) i | s -> i where
   labelCont :: Cont i
 
-instance Unsatisfiable (Text "Can't define explicit 'Label' instances") => Label l i where
+instance Unsatisfiable (Text "Label " :<>: ShowType s :<>: Text " is not in scope.") => Label s i where
   labelCont :: Cont i
   labelCont = undefined
 
--- An instance of 'Seg s a' means that segment 's' is in scope
+-- An instance of 'Mem s a' means that memory 's' is in scope
 -- and stores elements of type 'a'.
-class Seg s a | s -> a where
-  segRef :: IORef (Vector a)
+class Mem (s :: Symbol) a | s -> a where
+  memRef :: IORef (Vector a)
 
-instance Unsatisfiable (Text "Can't define explicit 'Seq' instances") => Seg s a where
-  segRef :: IORef (Vector a)
-  segRef = undefined
+instance Unsatisfiable (Text "Memory " :<>: ShowType s :<>: Text " is not in scope.") => Mem s a where
+  memRef :: IORef (Vector a)
+  memRef = undefined
 
--- An instance of 'Return o' means that the current function
+-- An instance of 'Ret o' means that the current function
 -- has output stack 'o'.
-class Return o where
-  returnCont :: Cont o
+class Ret o where
+  retCont :: Cont o
 
-instance Unsatisfiable (Text "Can't define explicit 'Return' instances") => Return o where
-  returnCont :: Cont o
-  returnCont = undefined
+instance Unsatisfiable (Text "Cannot 'return' out of this context.") => Ret o where
+  retCont :: Cont o
+  retCont = undefined
 
-newtype FnCont f i o = FnCont (Return o => Cont o -> Cont i)
+newtype FnCont i o = FnCont (Ret o => Cont o -> Cont i)
 
--- An instance of 'Fn f i o' means that function 'f' is in scope
+-- An instance of 'Fn s i o' means that function 's' is in scope
 -- with input stack 'i' and output stack 'o'.
-class Fn f i o | f -> i o where
-  fnRef :: IORef (FnCont f i o)
+class Fn (s :: Symbol) i o | s -> i o where
+  fnRef :: IORef (FnCont i o)
 
-instance Unsatisfiable (Text "Can't define explicit 'Fn' instances") => Fn f i o where
-  fnRef :: IORef (FnCont f i o)
+instance Unsatisfiable (Text "Function " :<>: ShowType s :<>: Text " is not in scope.") => Fn s i o where
+  fnRef :: IORef (FnCont i o)
   fnRef = undefined
 
--- An instance of 'Append a b c' witnesses the fact that (a ++ b) == c.
+-- An instance of 'Append a b c' witnesses the fact that (a ++ b) ≡ c.
 -- The class methods enable splitting and merging data stacks,
 -- and are used for jumps and function calls.
 class Append a b c | a b -> c, a c -> b where
@@ -86,7 +87,7 @@ type Stack = [Type]
 
 -- An 'Instr i o' is a Wasm instruction that takes an input stack 'i'
 -- and produces an output stack 'o'.
-data Instr (input :: Stack) (output :: Stack) where
+data Instr (i :: Stack) (o :: Stack) where
   Nop :: Instr i i
   Unreachable :: Instr i o
   Seq :: Instr i o -> Instr o o' -> Instr i o'
@@ -119,31 +120,31 @@ data Instr (input :: Stack) (output :: Stack) where
   Or :: Instr (Bool : Bool : i) (Bool : i)
   Not :: Instr (Bool : i) (Bool : i)
 
-  Block :: (Label l o => Instr i o) -> Instr i o
-  Loop :: (Label l i => Instr i o) -> Instr i o
+  Block :: (Label s o => Instr i o) -> Instr i o
+  Loop :: (Label s i => Instr i o) -> Instr i o
   If :: Instr i o -> Instr i o -> Instr (Bool : i) o
 
-  Br :: (Label l i, Append i b i') => Instr i' o
-  BrIf :: Label l i => Instr (Bool : i) i
+  Br :: (Label s i, Append i b i') => Instr i' o
+  BrIf :: Label s i => Instr (Bool : i) i
 
-  Let :: (Var v a => Instr i o) -> Instr (a : i) o
+  Let :: (Local s a => Instr i o) -> Instr (a : i) o
 
-  LocalGet :: Var v a => Instr i (a : i)
-  LocalSet :: Var v a => Instr (a : i) i
-  LocalTee :: Var v a => Instr (a : i) (a : i)
+  LocalGet :: Local s a => Instr i (a : i)
+  LocalSet :: Local s a => Instr (a : i) i
+  LocalTee :: Local s a => Instr (a : i) (a : i)
 
-  LetSeg :: (Seg s a => Instr i o) -> Instr (a : Int : i) o
+  LetMem :: (Mem s a => Instr i o) -> Instr (a : Int : i) o
 
-  SegLoad :: Seg s a => Instr (Int : i) (a : i)
-  SegStore :: Seg s a => Instr (a : Int : i) i
-  SegSize :: Seg s a => Instr i (Int : i)
-  SegGrow :: Seg s a => Instr (a : Int : i) i
+  MemLoad :: Mem s a => Instr (Int : i) (a : i)
+  MemStore :: Mem s a => Instr (a : Int : i) i
+  MemSize :: Mem s a => Instr i (Int : i)
+  MemGrow :: Mem s a => Instr (a : Int : i) i
 
-  -- Convenience instruction to print the segment's contents
-  SegPrint :: (Seg s a, Show a) => Instr i i
+  -- Convenience instruction to print a memory's contents
+  MemPrint :: (Mem s a, Show a) => Instr i i
 
-  Call :: (Fn f i o, Append i b i', Append o b o') => Instr i' o'
-  Ret :: (Return i, Append i b i') => Instr i' o
+  Call :: (Fn s i o, Append i b i', Append o b o') => Instr i' o'
+  Ret :: (Ret i, Append i b i') => Instr i' o
 
 type Cont i = HList i -> IO ()
 
@@ -198,36 +199,36 @@ eval e k =
     Or -> \(b :> a :> i) -> k ((a || b) :> i)
     Not -> \(a :> i) -> k (not a :> i)
 
-    Block @l e -> withDict @(Label l _) k $ eval e k
-    Loop @l e -> let kl = withDict @(Label l _) kl $ eval e k in kl
+    Block @s e -> withDict @(Label s _) k $ eval e k
+    Loop @s e -> let kl = withDict @(Label s _) kl $ eval e k in kl
     If e1 e2 -> \(b :> i) -> eval (bool e2 e1 b) k i
 
-    Br @l -> \i -> unappend i \i _ -> labelCont @l i
-    BrIf @l -> \(b :> i) -> bool k (labelCont @l) b i
+    Br @s -> \i -> unappend i \i _ -> labelCont @s i
+    BrIf @s -> \(b :> i) -> bool k (labelCont @s) b i
 
-    Let @v e -> \(a :> i) -> newIORef a >>= \r -> withDict @(Var v _) r $ eval e k i
+    Let @s e -> \(a :> i) -> newIORef a >>= \r -> withDict @(Local s _) r $ eval e k i
 
-    LocalGet @v -> \i -> readIORef (varRef @v) >>= \a -> k (a :> i)
-    LocalSet @v -> \(a :> i) -> writeIORef (varRef @v) a *> k i
-    LocalTee @v -> \i@(a :> _) -> writeIORef (varRef @v) a *> k i
+    LocalGet @s -> \i -> readIORef (localRef @s) >>= \a -> k (a :> i)
+    LocalSet @s -> \(a :> i) -> writeIORef (localRef @s) a *> k i
+    LocalTee @s -> \i@(a :> _) -> writeIORef (localRef @s) a *> k i
 
-    LetSeg @s e -> \(a :> n :> i) -> newIORef (V.replicate n a) >>= \r -> withDict @(Seg s _) r $ eval e k i
+    LetMem @s e -> \(a :> n :> i) -> newIORef (V.replicate n a) >>= \r -> withDict @(Mem s _) r $ eval e k i
 
-    SegLoad @s -> \(n :> i) -> readIORef (segRef @s) >>= \v -> checkBounds v n $ k (v V.! n :> i)
-    SegStore @s -> \(a :> n :> i) ->
-      let r = segRef @s
+    MemLoad @s -> \(n :> i) -> readIORef (memRef @s) >>= \v -> checkBounds v n $ k (v V.! n :> i)
+    MemStore @s -> \(a :> n :> i) ->
+      let r = memRef @s
       in readIORef r >>= \v -> checkBounds v n $ writeIORef r (v V.// [(n, a)]) *> k i
 
-    SegSize @s -> \i -> readIORef (segRef @s) >>= \v -> k (V.length v :> i)
-    SegGrow @s -> \(a :> n :> i) -> modifyIORef' (segRef @s) (<> V.replicate n a) *> k i
+    MemSize @s -> \i -> readIORef (memRef @s) >>= \v -> k (V.length v :> i)
+    MemGrow @s -> \(a :> n :> i) -> modifyIORef' (memRef @s) (<> V.replicate n a) *> k i
 
-    SegPrint @s -> \i -> readIORef (segRef @s) >>= \v -> print v *> k i
+    MemPrint @s -> \i -> readIORef (memRef @s) >>= \v -> print v *> k i
 
-    Call @f -> \i -> unappend i \i b ->
+    Call @s -> \i -> unappend i \i b ->
       let kf o = k (append o b)
-      in readIORef (fnRef @f) >>= \(FnCont fnCont) -> withDict @(Return _) kf $ fnCont kf i
+      in readIORef (fnRef @s) >>= \(FnCont fnCont) -> withDict @(Ret _) kf $ fnCont kf i
 
-    Ret @i -> \i -> unappend i \i _ -> returnCont @i i
+    Ret @i -> \i -> unappend i \i _ -> retCont @i i
   where
     -- Rather than crashing with a Haskell exception, just print an error message
     -- and stop calling the continuation.
@@ -240,7 +241,7 @@ eval e k =
 
     checkBounds :: Vector a -> Int -> IO () -> IO ()
     checkBounds v n k
-      | n < 0 || n >= V.length v = trap "Segment access out of bounds"
+      | n < 0 || n >= V.length v = trap "Memory access out of bounds"
       | otherwise = k
 
 evalInstr :: Instr '[] '[] -> IO ()
