@@ -49,7 +49,7 @@ initMod :: All cs => Mod cs is os -> IO ()
 initMod = \case
   MSeq a b -> initMod a *> initMod b
   Global @s a -> writeIORef (localRef @s) a
-  GlobalMem @s s -> writeIORef (memRef @s) s
+  GlobalMem @s v -> writeIORef (memRef @s) v
   Fn @s e -> writeIORef (fnRef @s) $ FnCont $ eval e
 
 type Module cs = Mod cs cs '[]
