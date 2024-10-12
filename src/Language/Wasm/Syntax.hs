@@ -179,7 +179,7 @@ global _ = Global @s
 global_mem :: forall a s cs is. (All cs => Mem s a) => SSymbol s -> Vector a -> Mod cs (Mem s a : is) is
 global_mem _ = GlobalMem @s
 
-fn :: forall i o f cs is. (All cs => Fn f i o) => SSymbol f -> ((Ret o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
+fn :: forall f. SSymbol f -> forall i o cs is. (All cs => Fn f i o) => ((Ret o, All cs) => Instr i o) -> Mod cs (Fn f i o : is) is
 fn _ = Fn @f
 
 -- Host-shared references

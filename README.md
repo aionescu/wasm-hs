@@ -13,7 +13,7 @@ Below is a simple example of the DSL, a Wasm program that computes the factorial
 ```haskell
 factorial :: WasmModule
 factorial = wasm do
-  fn @'[Int] #factorial do
+  fn #factorial @'[Int] do
     dup
     const 1
 

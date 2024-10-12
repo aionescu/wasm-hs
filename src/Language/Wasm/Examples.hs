@@ -24,17 +24,17 @@ functions :: WasmModule
 functions = wasm do
   global #g 2
 
-  fn @'[Int] #add_to_g do
+  fn #add_to_g @'[Int] do
     local.get #g
     add
     local.set #g
 
-  fn @'[Int] #add_to_g_twice do
+  fn #add_to_g_twice @'[Int] do
     dup
     call #add_to_g
     call #add_to_g
 
-  fn @'[] #print_g do
+  fn #print_g @'[] do
     local.get #g
     print
 
@@ -48,7 +48,7 @@ functions = wasm do
 -- itself with a smaller and smaller argument, until it reaches 0.
 recursion :: WasmModule
 recursion = wasm do
-  fn @'[Int] #f do
+  fn #f @'[Int] do
     dup
     const 0
 
@@ -137,7 +137,7 @@ factorial :: Int -> WasmModule
 factorial n = wasm do
   global #n n
 
-  fn @'[Int] #factorial do
+  fn #factorial @'[Int] do
     dup
     const 1
 
@@ -158,7 +158,7 @@ factorial n = wasm do
 
 mutualRecursion :: WasmModule
 mutualRecursion = wasm do
-  fn @'[Int] #f do
+  fn #f @'[Int] do
     dup
     const 0
 
@@ -171,7 +171,7 @@ mutualRecursion = wasm do
       sub
       call #g
 
-  fn @'[Int] #g do
+  fn #g @'[Int] do
     dup
     const 0
 
