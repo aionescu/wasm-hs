@@ -1,4 +1,4 @@
-{- HLINT IGNORE "Use camelCase" -}
+{- HLINT ignore "Use camelCase" -}
 {-# OPTIONS_GHC -Wno-orphans #-} -- The IsLabel instance is technically orphan, due to the '~' trick
 module Language.Wasm.Syntax where
 
